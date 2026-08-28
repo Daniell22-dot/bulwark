@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Features � Bulwark Endpoint Security Platform</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Every capability of the Bulwark platform: deceptive canaries, deep EDR telemetry, isolation kill-switch, OSINT intelligence, and verified website integrity monitoring.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2305e563'/><text x='50' y='70' font-size='62' font-family='monospace' font-weight='900' fill='%23000' text-anchor='middle'>B</text></svg>">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="logo" style="width:34px;height:34px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span><span class="brand-tag" style="display:none"></span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">=</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a><a href="features.html" class="active">Features</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="contact.html">Contact</a><a class="btn btn-neon nav-cta" href="contact.html">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <span class="kicker">The platform</span>
+    <h1>Everything Bulwark does �<br>in detail.</h1>
+    <p>Bulwark is built around one idea: <b style="color:var(--txt)">security that acts, not observes</b>. Here is the full capability map.</p>
+  </div>
+</header>
+
+<!-- SITE MONITOR -->
+<section class="section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Website integrity</span><h2>Monitor sites you actually own</h2><p>Anyone can claim a site. Bulwark lets you <i>prove</i> it first � and refuses to touch anything you can't.</p></div>
+    <div class="grid grid-2">
+      <div class="card"><div class="ico"><span class="g" data-icon="lock"></span></div><h3>Verified ownership first</h3><p>Prove you own a domain three ways � DNS TXT record, HTML meta tag, or a signed root file � and Bulwark re-validates on every cycle. <b style="color:var(--txt)">Unverified sites are never monitored.</b></p></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="chart"></span></div><h3>Uptime &amp; availability</h3><p>Continuous checks with a 99.9%+ target. The moment a claimed site is unreachable or degraded, it becomes an event.</p></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="shield"></span></div><h3>TLS posture</h3><p>Validates certificate trust, expiry and protocol posture � visitors are never silently served an insecure or spoofed connection.</p></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="eye"></span></div><h3>Silent clone detection</h3><p>Catches look-alike phishing copies of your site before they dodge you � the kind that rip off your brand and your customers.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- EDR + RESPONSE -->
+<section class="section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Endpoint detection &amp; response</span><h2>Deep telemetry, decisive response</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Capability</th><th>What it does</th><th>Value to you</th></tr></thead>
+        <tbody>
+          <tr><td class="mono neon">Deep EDR</td><td>Kernel-level ETW watch on process behaviour, injection and memory tampering.</td><td>Catches evasive malware ordinary AV misses.</td></tr>
+          <tr><td class="mono neon">Evasion detector</td><td>Scans for ETW blinding &amp; patching in real time.</td><td>Exposes attackers trying to go invisible in memory.</td></tr>
+          <tr><td class="mono neon">Correlation</td><td>Weighted, cross-signal risk scoring across your fleet.</td><td>One clear priority list, not oceans of noise.</td></tr>
+          <tr><td class="mono neon">Auto-block</td><td>Automatic firewall rules on brute-force &amp; connection floods.</td><td>Attack infrastructure is cut off before escalation.</td></tr>
+          <tr><td class="mono neon">Isolation kill-switch</td><td>One command blocks all traffic except Bulwark.</td><td>Bleach out the attacker's channel in seconds.</td></tr>
+          <tr><td class="mono neon">Persistence sweep</td><td>Finds and, with confirmation, removes autorun persistence.</td><td>Breaks the "re-infection every reboot" cycle.</td></tr>
+          <tr><td class="mono neon">OSINT enrichment</td><td>Threat-intelligence lookups on every blocked entity.</td><td>Events become action-ready dossiers.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- DECEPTION -->
+<section class="section">
+  <div class="container">
+    <div class="grid grid-2">
+      <div>
+        <span class="kicker">Deception layer</span>
+        <h2 style="font-size:clamp(1.6rem,3.2vw,2.4rem); margin:12px 0 18px">Bait that turns attackers into intel</h2>
+        <p style="font-size:1.02rem">Most breaches happen silently � nobody knows until the damage is done. Bulwark's deception layer makes attackers announce themselves.</p>
+        <div class="callout"><p><b class="neon">Credential canaries</b> � real-looking fake credentials spread where attackers look. The moment one is used, Bulwark logs the source IP, host and time, and raises a weighted alert. A tripwire across the whole network.</p></div>
+        <div class="pbar"><div class="pl"><span>canary coverage</span><b>fleet-wide</b></div><div class="track"><div class="fill" data-width="100"></div></div></div>
+      </div>
+      <div class="glass" style="padding:26px; font-family:var(--font-mono); font-size:.8rem; line-height:1.9">
+        <div class="dim">[WARN] canary used: finance\<span class="neon">jenny_backup</span></div>
+        <div>&nbsp;&nbsp;source&nbsp;&nbsp;&nbsp;&nbsp;192.168.4.66</div>
+        <div>&nbsp;&nbsp;lateral&nbsp;&nbsp;&nbsp;2 hops � zone crossing</div>
+        <div>&nbsp;&nbsp;severity&nbsp;&nbsp;HIGH � auto-block armed</div>
+        <div class="neon">bulwark &gt; isolate 192.168.4.66</div>
+        <div class="neon">[OK] host isolated from network</div>
+        <div class="dim">audit: SHA-256 anchored � 0x8f3a</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMSHELL -->
+<section class="section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">The Bulwark shell</span><h2>A command centre you can drive</h2><p>Familiar, fast, and honest. Every destructive command asks for confirmation. History persists. Even typos get a helpful "did you mean?".</p></div>
+    <div class="grid grid-3">
+      <div class="card"><div class="ico"><span class="g" data-icon="clock"></span></div><h3>Session tooling</h3><p>Persistent history, <span class="mono neon">!!</span> / <span class="mono neon">!N</span> recall, aliases, and <span class="mono neon">@runfile</span> automation.</p></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="shield"></span></div><h3>Guarded destruction</h3><p>Isolate, block, kill, remove-persistence and archive all demand explicit confirmation.</p></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="message"></span></div><h3>Forgiving UX</h3><p>Subcommand help on every group and a did-you-mean suggestion when you mistype.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <h2>See Bulwark on <span class="neon">your</span> endpoints.</h2>
+    <p>Message us and we'll walk you through a live command-centre demo. WhatsApp, call or text � your choice.</p>
+    <div class="cta-actions"><a class="btn btn-neon btn-lg" href="contact.html">Book a demo <span class="g" data-icon="whatsapp" style="width:18px;height:18px"></span></a><a class="btn btn-ghost btn-lg" href="pricing.html">Pricing</a></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><span class="logo" style="width:30px;height:30px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span></a><p style="margin-top:16px">Deceptive &amp; agentic endpoint security, engineered in Nyeri County, Kenya.</p></div>
+      <div><h4>Product</h4><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="about.html">About</a></div>
+      <div><h4>Support</h4><a href="contact.html">Contact</a><a href="about.html">Why Bulwark</a></div>
+      <div><h4>Contact</h4><a href="https://wa.me/254796874539" target="_blank"><span class="g" data-icon="whatsapp"></span> WhatsApp</a><a href="tel:+254796874539"><span class="g" data-icon="phone"></span> +254 796 874 539</a><a href="sms:+254796874539"><span class="g" data-icon="message"></span> SMS +254 796 874 539</a></div>
+    </div>
+    <div class="footer-bottom"><span>� 2026 Bulwark Security � Nyeri County, Kenya</span><span class="prompt">bulwark &gt;_ stay safe out there</span></div>
+  </div>
+</footer>
+
+<a class="float-wa" href="https://wa.me/254796874539" target="_blank" aria-label="Chat on WhatsApp"><span class="g" data-icon="whatsapp" style="width:26px;height:26px"></span></a>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
