@@ -326,7 +326,7 @@ td .yes{color:var(--neon);} td .no{color:var(--txt-faint);}
 
 /* footer */
 .footer { background:#000; border-top:1px solid var(--stroke); padding:60px 0 40px; }
-.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; }
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:40px; }
 .footer h4 { font-size:.78rem; margin-bottom:16px; letter-spacing:.14em; color:var(--txt); }
 .footer p { font-size:.88rem; }
 .footer a { display:flex; align-items:center; gap:8px; color:var(--txt-dim); margin-bottom:9px; font-size:.86rem; }
