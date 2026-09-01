@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sample Reports — Bulwark Endpoint Security</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Real security scan test sessions run against authorized targets: website vulnerability scans, GitHub repository secret scans, USB device inventories and detection tests. Evidence stored as JSON.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2305e563'/><text x='50' y='70' font-size='62' font-family='monospace' font-weight='900' fill='%23000' text-anchor='middle'>B</text></svg>">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="logo" style="width:34px;height:34px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span><span class="brand-tag" style="display:none"></span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="reports.html" class="active">Reports</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a class="btn btn-neon nav-cta" href="contact.html">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <span class="kicker">Field reports · test sessions</span>
+    <h1>Tests &amp; reports,<br><span class="neon">shown in the open.</span></h1>
+    <p>Every example below is real output captured during development against targets Bulwark owns or is authorized to assess — a personal website, two personal GitHub repositories, and the local machine. Evidence is stored as JSON; human reports as standalone HTML.</p>
+  </div>
+</header>
+
+<!-- WEBSCAN -->
+<section class="section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Website vulnerability scan</span><h2>www.tuiyabelong.com</h2></div>
+    <p class="dim" style="text-align:center; max-width:720px; margin:0 auto 40px">Authorized scan via Bulwark's security shell: <span class="mono neon">webscan https://www.tuiyabelong.com --full --sqli --xss</span>. The scanner runs an HTTPS header audit, TLS protocol probes, sensitive path checks with soft-404 suppression, login form analysis, SQL injection and reflected XSS probes.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Severity</th><th>Finding</th><th>Fix advice issued by Bulwark</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>Server accepts deprecated TLS 1.0</td><td>Disable TLS 1.0 in server configuration. For nginx set <span class="mono neon">ssl_protocols TLSv1.2 TLSv1.3;</span>. For IIS use the registry CryptoPolicy keys or IIS Crypto.</td></tr>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>Server accepts deprecated TLS 1.1</td><td>TLS 1.1 fails modern compliance baselines (PCI DSS). Restrict to TLS 1.2+ and retest.</td></tr>
+          <tr><td><span class="sev MEDIUM">MEDIUM</span></td><td>Missing Content-Security-Policy</td><td>Add a CSP response header starting in report-only mode, then enforce. A starter policy ships verbatim in the HTML report.</td></tr>
+          <tr><td><span class="sev MEDIUM">MEDIUM</span></td><td>No clickjacking protection</td><td>Add <span class="mono neon">X-Frame-Options: DENY</span> or a <span class="mono neon">frame-ancestors</span> CSP directive.</td></tr>
+          <tr><td><span class="sev LOW">LOW</span></td><td>Missing X-Content-Type-Options</td><td>Send <span class="mono neon">nosniff</span> to stop MIME confusion attacks.</td></tr>
+          <tr><td><span class="sev LOW">LOW</span></td><td>Missing Permissions-Policy</td><td>Disable unused browser features such as camera and microphone.</td></tr>
+          <tr><td><span class="sev LOW">LOW</span></td><td>Missing Referrer-Policy</td><td>Set <span class="mono neon">strict-origin-when-cross-origin</span> to stop token leakage.</td></tr>
+          <tr><td><span class="sev INFO">INFO</span></td><td>HTTPS enforced</td><td>HTTP requests redirect correctly to HTTPS.</td></tr>
+          <tr><td><span class="sev INFO">INFO</span></td><td>TLS certificate valid</td><td>Certificate chain valid, issued by Let's Encrypt, not expiring within 30 days.</td></tr>
+          <tr><td><span class="sev INFO">INFO</span></td><td>JavaScript-handled login form</td><td>Form posts via script rather than plain HTML submit; no plaintext credential probe attempted.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout blue"><p><b style="color:var(--txt)">Evidence on disk.</b> Every scan writes two artifacts to <span class="mono neon">%ProgramData%\Sentinel\webreports\</span>: a <span class="mono">.json</span> full evidence file (each check, request/response summary) and a standalone <span class="mono">.html</span> report openable in any browser. The numbers above are verifiable, not trusted.</p></div>
+  </div>
+</section>
+
+<!-- REPOSCAN -->
+<section class="section-alt section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Repository secret scan</span><h2>github.com/Daniell22-dot/ORIA</h2><p>The scanner clones shallowly, walks tracked files, and matches secret patterns plus dangerous code idioms. 299 files examined.</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sev CRITICAL">CRITICAL</span></td><td>HardcodedSecret</td><td>src/services/secure/chamaEncryption.ts:3</td><td>Live encryption key committed in source. Treat as compromised — rotate immediately.</td></tr>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/encrypted.ts:213,224,239</td><td>SQL built by string interpolation — injectable if any part comes from user input.</td></tr>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/sqlite/sync.ts:296</td><td><span class="mono neon">INSERT INTO ${table}...</span> — parameterized statements recommended.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout red"><p><b style="color:var(--txt)">Safe to share.</b> The scanner reports file paths and line numbers but <i>never prints the secret value itself</i>, so reports remain safe to share across teams. Secrets were rotated after detection.</p></div>
+  </div>
+</section>
+
+<!-- USB -->
+<section class="section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">USB device inventory</span><h2>Endpoint enumeration test</h2><p>The enumerator lists every USB device with PnP class and status; arrivals trigger detection events that correlate with risky autorun behaviour.</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Device</th><th>PnP class</th><th>Status</th><th>VID/PID</th></tr></thead>
+        <tbody>
+          <tr><td>Broadcom 20702 Bluetooth 4.0 Adapter</td><td>Bluetooth</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>0A5C:21E1</td></tr>
+          <tr><td>HP HD Webcam [Fixed]</td><td>Image</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>0461:4DCE</td></tr>
+          <tr><td>USB Mass Storage Device</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>346D:5678</td></tr>
+          <tr><td>USB Composite Device</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>0461:4DCE</td></tr>
+          <tr><td>USB Root Hub (USB 3.0)</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>—</td></tr>
+          <tr><td>Fingerprint sensor (unnamed)</td><td>—</td><td><span class="red">Error</span></td><td>138A:003C</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><p><b style="color:var(--txt)">Why USB matters.</b> Arrival of a storage device combined with a suspicious script is a classic first stage of data exfiltration. Bulwark's correlation engine pairs USB arrivals with risky behaviour inside a sliding window.</p></div>
+  </div>
+</section>
+
+<!-- DETECTION TESTS -->
+<section class="section-alt section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Detection engine tests</span><h2>Threats we proved we catch</h2><p>Each row is an automated test that confirms the detector fires as designed — with the weighted verdict the scorer would emit.</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Test</th><th>Method</th><th>Expected result</th></tr></thead>
+        <tbody>
+          <tr><td class="mono neon">Ransomware canary tripwire</td><td>Modify a canary file externally</td><td><span class="sev CRITICAL">CRITICAL</span> RansomwareActivity within one poll cycle; dashboard toast</td></tr>
+          <tr><td class="mono neon">Remote-access tool detection</td><td>Launch TeamViewer-compatible process name from temp path</td><td><span class="sev HIGH">HIGH</span> RemoteAccessTool event, weight 0.75; optional auto-termination</td></tr>
+          <tr><td class="mono neon">Suspicious parent-child chain</td><td>Word-spawned script host simulation harness</td><td><span class="sev HIGH">HIGH</span> SuspiciousProcessChain, weight 0.8</td></tr>
+          <tr><td class="mono neon">Orphaned process</td><td>Kill parent of a spawned child</td><td><span class="sev MEDIUM">MEDIUM</span> OrphanedProcess, weight 0.55, correlated if within window</td></tr>
+          <tr><td class="mono neon">Port flood correlation</td><td>Burst connect attempts to guarded ports</td><td>CorrelationEngine promotes single events into a composite <span class="sev CRITICAL">CRITICAL</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="dim" style="text-align:center; max-width:680px; margin:40px auto 0">Full JSON evidence for every example on this page ships in the repository under <span class="mono neon">webreports\</span>, so every number here can be verified rather than trusted — the same rule Bulwark applies to the sites it defends.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <h2>Want this on <span class="neon">your</span> endpoints?</h2>
+    <p>Message us and we'll run the same authorized scans against your sites and repos — then walk you through the findings together.</p>
+    <div class="cta-actions">
+      <a class="btn btn-neon btn-lg" href="contact.html">Book a scan <span class="g" data-icon="whatsapp" style="width:18px;height:18px"></span></a>
+      <a class="btn btn-ghost btn-lg" href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><span class="logo" style="width:30px;height:30px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span></a><p style="margin-top:14px">Deceptive &amp; agentic endpoint security, engineered in Nyeri County, Kenya.</p></div>
+      <div><h4>Product</h4><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="about.html">About</a></div>
+      <div><h4>Support</h4><a href="contact.html">Contact</a><a href="about.html">Why Bulwark</a></div>
+      <div><h4>Contact</h4><a href="https://wa.me/254796874539" target="_blank"><span class="g" data-icon="whatsapp"></span> WhatsApp +254 796 874 539</a><a href="tel:+254796874539"><span class="g" data-icon="phone"></span> +254 796 874 539</a><a href="sms:+254796874539"><span class="g" data-icon="message"></span> SMS +254 796 874 539</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Bulwark Security. Nyeri County, Kenya. All rights reserved.</span><span class="payment">bulwark &gt;_ stay safe out there</span></div>
+  </div>
+</footer>
+
+<a class="float-wa" href="https://wa.me/254796874539" target="_blank" aria-label="Chat on WhatsApp"><span class="g" data-icon="whatsapp" style="width:26px;height:26px"></span></a>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

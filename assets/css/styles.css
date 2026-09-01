@@ -345,6 +345,17 @@ td .yes{color:var(--neon);} td .no{color:var(--txt-faint);}
 .page-hero h1 { font-size: clamp(2rem,4.4vw,3.4rem); margin-bottom:16px; }
 .page-hero p { max-width:640px; font-size:1.06rem; }
 
+/* alternate section background (reports) */
+.section-alt { background: rgba(255,255,255,.02); }
+
+/* severity badges (report findings) */
+.sev { display:inline-block; padding:3px 12px; font-family:var(--font-mono); font-size:.68rem; font-weight:700; letter-spacing:.1em; border:1px solid currentColor; text-transform:uppercase; white-space:nowrap; }
+.sev.CRITICAL { color:#ff5a5f; border-color:#ff5a5f; background:rgba(255,90,95,.08); }
+.sev.HIGH { color:#ffb347; border-color:#ffb347; background:rgba(255,179,71,.08); }
+.sev.MEDIUM { color:var(--gold); border-color:var(--gold); background:rgba(255,215,0,.08); }
+.sev.LOW { color:#b0b8c4; border-color:#b0b8c4; background:rgba(255,255,255,.04); }
+.sev.INFO { color:var(--neon); border-color:var(--neon); background:rgba(5,229,99,.08); }
+
 /* ---------- responsive ---------- */
 @media (max-width: 980px) {
   .grid-3 { grid-template-columns: repeat(2,1fr); }
