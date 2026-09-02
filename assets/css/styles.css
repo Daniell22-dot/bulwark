@@ -356,6 +356,54 @@ td .yes{color:var(--neon);} td .no{color:var(--txt-faint);}
 .sev.LOW { color:#b0b8c4; border-color:#b0b8c4; background:rgba(255,255,255,.04); }
 .sev.INFO { color:var(--neon); border-color:var(--neon); background:rgba(5,229,99,.08); }
 
+/* ---------- live animated shell terminal ---------- */
+.term { position:fixed; z-index:80; right:26px; bottom:96px; width:min(520px, calc(100vw - 52px));
+  border:1px solid var(--stroke); background:rgba(0,0,0,.82); backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur); border-radius:10px; overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(5,229,99,.08) inset;
+  transform-origin:bottom right; animation:term-pop .45s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes term-pop { from { transform:translateY(24px) scale(.94); opacity:0; } to { transform:none; opacity:1; } }
+.term-bar { display:flex; align-items:center; gap:8px; padding:11px 14px; background:rgba(255,255,255,.04); border-bottom:1px solid var(--hairline); cursor:grab; user-select:none; }
+.term-dot { width:11px; height:11px; border-radius:50%; }
+.term-dot.red { background:#ff5f57; } .term-dot.amber { background:#febc2e; } .term-dot.green { background:#28c840; }
+.term-title { flex:1; text-align:center; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--txt-faint); }
+.term-live { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:.6rem;
+  font-weight:700; letter-spacing:.16em; color:var(--neon); }
+.live-dot { width:7px; height:7px; border-radius:50%; background:var(--neon); box-shadow:0 0 10px var(--neon); animation:pulse 1.4s infinite; }
+.term-actions { display:inline-flex; gap:4px; align-items:center; }
+.term-act { width:22px; height:22px; display:grid; place-items:center; background:transparent; border:1px solid var(--stroke);
+  color:var(--txt-dim); font-family:var(--font-mono); font-size:.85rem; line-height:1; cursor:pointer;
+  border-radius:4px; transition:all .15s ease; }
+.term-act:hover { color:var(--neon); border-color:var(--neon); }
+.term-body { height:300px; overflow-y:auto; padding:18px 20px; font-family:var(--font-mono); font-size:.78rem; line-height:1.7; color:var(--txt-dim); scrollbar-width:none; transition:height .28s ease; }
+.term-body::-webkit-scrollbar { display:none; }
+.term-out { white-space:pre-wrap; word-break:break-word; }
+.term-out .c { color:var(--neon); }          /* command echo */
+.term-out .ok { color:var(--neon); }          /* success */
+.term-out .warn { color:#ffb347; }            /* warning */
+.term-out .err { color:#ff5a5f; }             /* error */
+.term-out .hl { color:var(--txt); font-weight:700; }
+.term-out .dim { color:var(--txt-faint); }
+.term-line { display:flex; align-items:center; }
+.term-prompt { color:var(--neon); font-weight:700; margin-right:8px; }
+.term-input { color:var(--txt); white-space:pre; }
+.term-cursor { display:inline-block; width:9px; height:1.05em; margin-left:2px; background:var(--neon);
+  box-shadow:0 0 8px var(--neon); animation:cursor-blink 1s steps(1) infinite; vertical-align:text-bottom; }
+@keyframes cursor-blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+.term.minimized .term-body { height:0; padding-top:0; padding-bottom:0; }
+.term.minimized { box-shadow:0 12px 34px rgba(0,0,0,.45); }
+.term.hidden { display:none; }
+
+/* floating relaunch tab (shown only when the window is closed) */
+.term-tab { position:fixed; z-index:80; right:26px; bottom:96px; display:none; align-items:center; gap:9px;
+  padding:12px 18px; font-family:var(--font-mono); font-size:.74rem; letter-spacing:.12em; text-transform:uppercase;
+  color:#000; background:var(--neon); border-radius:30px; font-weight:700; box-shadow:0 12px 34px rgba(5,229,99,.35);
+  cursor:pointer; transition:transform .15s ease; }
+.term-tab:hover { transform:translateY(-2px); }
+.term-tab.show { display:inline-flex; }
+.live-dot.dark { background:#000; box-shadow:none; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 980px) {
   .grid-3 { grid-template-columns: repeat(2,1fr); }

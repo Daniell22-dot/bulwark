@@ -1,23 +1,68 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sample Reports — Bulwark Endpoint Security</title>
+<title>Sample Reports â€” Bulwark Endpoint Security</title>
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="description" content="Real security scan test sessions run against authorized targets: website vulnerability scans, GitHub repository secret scans, USB device inventories and detection tests. Evidence stored as JSON.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bulwark">
+<meta property="og:title" content="Sample Reports â€" Bulwark Endpoint Security">
+<meta property="og:description" content="Real security scan test sessions run against authorized targets: website vulnerability scans, GitHub repository secret scans, USB device inventories and detection tests. Evidence stored as JSON.">
+<meta property="og:url" content="https://bulwark.co.ke/reports.html">
+<meta property="og:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sample Reports â€" Bulwark Endpoint Security">
+<meta name="twitter:description" content="Real security scan test sessions run against authorized targets: website vulnerability scans, GitHub repository secret scans, USB device inventories and detection tests. Evidence stored as JSON.">
+<meta name="twitter:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/styles.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2305e563'/><text x='50' y='70' font-size='62' font-family='monospace' font-weight='900' fill='%23000' text-anchor='middle'>B</text></svg>">
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="assets/img/site.webmanifest">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Bulwark Security",
+  "description": "Deceptive and agentic endpoint security platform built in Kenya.",
+  "url": "https://bulwark.co.ke/",
+  "logo": "https://bulwark.co.ke/assets/img/logo-512.png",
+  "image": "https://bulwark.co.ke/assets/img/og-cover.png",
+  "telephone": "+254796874539",
+  "email": "hello@bulwark.co.ke",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Nyeri",
+    "addressCountry": "KE"
+  },
+  "sameAs": [
+    "https://wa.me/254796874539"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+254796874539",
+    "contactType": "sales",
+    "availableLanguage": ["English", "Swahili"]
+  }
+}
+</script>
+<link rel="preconnect" href="https://bulwark.co.ke">
+<link rel="dns-prefetch" href="https://bulwark.co.ke">
+<link rel="canonical" href="https://bulwark.co.ke/reports.html">
 </head>
 <body>
 
 <nav class="nav">
   <div class="container nav-inner">
     <a class="brand" href="index.html"><span class="logo" style="width:34px;height:34px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span><span class="brand-tag" style="display:none"></span></a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">â˜°</button>
     <div class="nav-links" id="navLinks">
       <a href="index.html">Home</a>
       <a href="features.html">Features</a>
@@ -32,9 +77,9 @@
 
 <header class="page-hero">
   <div class="container">
-    <span class="kicker">Field reports · test sessions</span>
+    <span class="kicker">Field reports Â· test sessions</span>
     <h1>Tests &amp; reports,<br><span class="neon">shown in the open.</span></h1>
-    <p>Every example below is real output captured during development against targets Bulwark owns or is authorized to assess — a personal website, two personal GitHub repositories, and the local machine. Evidence is stored as JSON; human reports as standalone HTML.</p>
+    <p>Every example below is real output captured during development against targets Bulwark owns or is authorized to assess â€” a personal website, two personal GitHub repositories, and the local machine. Evidence is stored as JSON; human reports as standalone HTML.</p>
   </div>
 </header>
 
@@ -72,9 +117,9 @@
       <table>
         <thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Meaning</th></tr></thead>
         <tbody>
-          <tr><td><span class="sev CRITICAL">CRITICAL</span></td><td>HardcodedSecret</td><td>src/services/secure/chamaEncryption.ts:3</td><td>Live encryption key committed in source. Treat as compromised — rotate immediately.</td></tr>
-          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/encrypted.ts:213,224,239</td><td>SQL built by string interpolation — injectable if any part comes from user input.</td></tr>
-          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/sqlite/sync.ts:296</td><td><span class="mono neon">INSERT INTO ${table}...</span> — parameterized statements recommended.</td></tr>
+          <tr><td><span class="sev CRITICAL">CRITICAL</span></td><td>HardcodedSecret</td><td>src/services/secure/chamaEncryption.ts:3</td><td>Live encryption key committed in source. Treat as compromised â€” rotate immediately.</td></tr>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/encrypted.ts:213,224,239</td><td>SQL built by string interpolation â€” injectable if any part comes from user input.</td></tr>
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>SqlStringConcat</td><td>src/services/database/sqlite/sync.ts:296</td><td><span class="mono neon">INSERT INTO ${table}...</span> â€” parameterized statements recommended.</td></tr>
         </tbody>
       </table>
     </div>
@@ -94,8 +139,8 @@
           <tr><td>HP HD Webcam [Fixed]</td><td>Image</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>0461:4DCE</td></tr>
           <tr><td>USB Mass Storage Device</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>346D:5678</td></tr>
           <tr><td>USB Composite Device</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>0461:4DCE</td></tr>
-          <tr><td>USB Root Hub (USB 3.0)</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>—</td></tr>
-          <tr><td>Fingerprint sensor (unnamed)</td><td>—</td><td><span class="red">Error</span></td><td>138A:003C</td></tr>
+          <tr><td>USB Root Hub (USB 3.0)</td><td>USB</td><td><span class="green" style="color:var(--neon)">OK</span></td><td>â€”</td></tr>
+          <tr><td>Fingerprint sensor (unnamed)</td><td>â€”</td><td><span class="red">Error</span></td><td>138A:003C</td></tr>
         </tbody>
       </table>
     </div>
@@ -106,7 +151,7 @@
 <!-- DETECTION TESTS -->
 <section class="section-alt section">
   <div class="container">
-    <div class="sec-head"><span class="kicker">Detection engine tests</span><h2>Threats we proved we catch</h2><p>Each row is an automated test that confirms the detector fires as designed — with the weighted verdict the scorer would emit.</p></div>
+    <div class="sec-head"><span class="kicker">Detection engine tests</span><h2>Threats we proved we catch</h2><p>Each row is an automated test that confirms the detector fires as designed â€” with the weighted verdict the scorer would emit.</p></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Test</th><th>Method</th><th>Expected result</th></tr></thead>
@@ -119,7 +164,7 @@
         </tbody>
       </table>
     </div>
-    <p class="dim" style="text-align:center; max-width:680px; margin:40px auto 0">Full JSON evidence for every example on this page ships in the repository under <span class="mono neon">webreports\</span>, so every number here can be verified rather than trusted — the same rule Bulwark applies to the sites it defends.</p>
+    <p class="dim" style="text-align:center; max-width:680px; margin:40px auto 0">Full JSON evidence for every example on this page ships in the repository under <span class="mono neon">webreports\</span>, so every number here can be verified rather than trusted â€” the same rule Bulwark applies to the sites it defends.</p>
   </div>
 </section>
 
@@ -127,7 +172,7 @@
 <section class="cta">
   <div class="container">
     <h2>Want this on <span class="neon">your</span> endpoints?</h2>
-    <p>Message us and we'll run the same authorized scans against your sites and repos — then walk you through the findings together.</p>
+    <p>Message us and we'll run the same authorized scans against your sites and repos â€” then walk you through the findings together.</p>
     <div class="cta-actions">
       <a class="btn btn-neon btn-lg" href="contact.html">Book a scan <span class="g" data-icon="whatsapp" style="width:18px;height:18px"></span></a>
       <a class="btn btn-ghost btn-lg" href="pricing.html">Pricing</a>
@@ -144,11 +189,33 @@
       <div><h4>Legal</h4><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Use</a><a href="dpa.html">Data Processing</a></div>
       <div><h4>Contact</h4><a href="https://wa.me/254796874539" target="_blank"><span class="g" data-icon="whatsapp"></span> WhatsApp +254 796 874 539</a><a href="tel:+254796874539"><span class="g" data-icon="phone"></span> +254 796 874 539</a><a href="sms:+254796874539"><span class="g" data-icon="message"></span> SMS +254 796 874 539</a></div>
     </div>
-    <div class="footer-bottom"><span>© 2026 Bulwark Security. Nyeri County, Kenya. All rights reserved.</span><span class="payment">bulwark &gt;_ stay safe out there</span></div>
+    <div class="footer-bottom"><span>Â© 2026 Bulwark Security. Nyeri County, Kenya. All rights reserved.</span><span class="payment">bulwark &gt;_ stay safe out there</span></div>
   </div>
 </footer>
 
 <a class="float-wa" href="https://wa.me/254796874539" target="_blank" aria-label="Chat on WhatsApp"><span class="g" data-icon="whatsapp" style="width:26px;height:26px"></span></a>
-<script src="assets/js/main.js"></script>
+    <!-- ANIMATED LIVE TERMINAL -->
+    <div class="term" id="term" aria-label="Live Bulwark shell demo">
+      <div class="term-bar">
+        <span class="term-dot red"></span><span class="term-dot amber"></span><span class="term-dot green"></span>
+        <span class="term-title">bulwark — command centre</span>
+        <span class="term-live"><span class="live-dot"></span> LIVE</span>
+        <span class="term-actions">
+          <button class="term-act" id="termMin" title="Minimise" aria-label="Minimise terminal">&ndash;</button>
+          <button class="term-act" id="termClose" title="Close" aria-label="Close terminal">&times;</button>
+        </span>
+      </div>
+      <div class="term-body" id="termBody">
+        <pre class="term-out" id="termOut"></pre>
+        <div class="term-line">
+          <span class="term-prompt">bulwark&nbsp;&gt;</span>
+          <span class="term-input" id="termInput"></span>
+          <span class="term-cursor"></span>
+        </div>
+      </div>
+    </div>
+    <button class="term-tab" id="termTab" aria-label="Reopen live terminal"><span class="live-dot dark"></span> Live shell</button>
+<script defer src="assets/js/main.js" data-cfasync="false"></script>
+<script defer data-domain="bulwark.co.ke" src="https://plausible.io/js/script.js"></script>
 </body>
 </html>

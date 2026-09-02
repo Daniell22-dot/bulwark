@@ -1,0 +1,16 @@
+{
+  "name": "Bulwark",
+  "short_name": "Bulwark",
+  "icons": [
+    {
+      "src": "/assets/img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#05e563",
+  "background_color": "#000000",
+  "display": "standalone",
+  "start_url": "/",
+  "lang": "en-KE"
+}

@@ -139,13 +139,13 @@
       chars.push(s);
     });
     // reveal each letter top-to-bottom, spread over ~20 seconds total
-    var idx = 0;
+    var plIdx = 0;
     var PACE = 2400;          // ms per letter => ~7 * 2.4s = ~17s of build
     var HOLD = 3000;          // hold full word before fading
     function nextLetter() {
-      if (idx >= chars.length) { setTimeout(finish, HOLD); return; }
-      chars[idx].classList.add("filled");
-      idx++;
+      if (plIdx >= chars.length) { setTimeout(finish, HOLD); return; }
+      chars[plIdx].classList.add("filled");
+      plIdx++;
       setTimeout(nextLetter, PACE);
     }
     function finish() {
@@ -251,7 +251,7 @@
     progressBars.forEach(function (b) { io.observe(b); });
   }
 
-  /* LEAD form: opens WhatsApp with the enquiry, same number every time */
+  /* LEAD form: submit to Formspree, then open WhatsApp with the enquiry */
   var PHONE = "+254796874539", WA = "254796874539";
   var form = document.getElementById("leadForm");
   if (form) {
@@ -266,12 +266,25 @@
         "Company: " + (g("company") || "-") + "\n" +
         "Interest: " + (g("interest") || "-") + "\n" +
         "Devices: " + (g("seats") || "-") + "\n\nMessage: " + (g("message") || "-");
-      window.open("https://wa.me/" + WA + "?text=" + encodeURIComponent(text), "_blank");
-      var ok = document.getElementById("formOk");
-      if (ok) {
-        ok.style.display = "block";
-        ok.textContent = "Opening WhatsApp to +254 796 874 539 with your enquiry. Prefer voice? Call or SMS the same number any time.";
-      }
+      fetch(form.action, {
+        method: "POST",
+        body: data,
+        headers: { "Accept": "application/json" }
+      }).then(function () {
+        window.open("https://wa.me/" + WA + "?text=" + encodeURIComponent(text), "_blank");
+        var ok = document.getElementById("formOk");
+        if (ok) {
+          ok.style.display = "block";
+          ok.textContent = "Enquiry captured. Opening WhatsApp to +254 796 874 539 — a real person answers fast.";
+        }
+      }).catch(function () {
+        window.open("https://wa.me/" + WA + "?text=" + encodeURIComponent(text), "_blank");
+        var ok = document.getElementById("formOk");
+        if (ok) {
+          ok.style.display = "block";
+          ok.textContent = "Opening WhatsApp to +254 796 874 539 with your enquiry. Prefer voice? Call or SMS the same number any time.";
+        }
+      });
       form.reset();
     });
   }
@@ -284,4 +297,172 @@
   }
   if (zoomIn) zoomIn.addEventListener("click", function () { mapScale = Math.min(2, mapScale + 0.25); applyZoom(); });
   if (zoomOut) zoomOut.addEventListener("click", function () { mapScale = Math.max(0.6, mapScale - 0.25); applyZoom(); });
+
+  /* ------------------------------------------------------------------
+     Live animated shell terminal (features page).
+     Types a Bulwark command character-by-character, prints its output,
+     then moves on — looping forever so the window is never idle/empty.
+  ------------------------------------------------------------------ */
+  var term = document.getElementById("term");
+  if (term) {
+    var termOut = document.getElementById("termOut");
+    var termInput = document.getElementById("termInput");
+    var termBody = document.getElementById("termBody");
+
+    function esc(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function pushLine(html) {
+      var div = document.createElement("div");
+      div.innerHTML = html;
+      termOut.appendChild(div);
+      while (termOut.childNodes.length > 320) termOut.removeChild(termOut.firstChild);
+      termBody.scrollTop = termBody.scrollHeight;
+    }
+
+    /* mechanical key-click sound. Uses an <audio> element (not fetch) so it
+       works under file:// too, not just http(s). One sampler is preloaded and
+       cloned per keystroke for overlap + slight pitch/volume variance.
+       Browsers only allow playback after a user gesture, so we prime on the
+       first pointer/key/touch/scroll interaction. */
+    var sampler = null, lastTick = 0;
+    function initAudio() {
+      if (sampler) return;
+      try {
+        sampler = new Audio("assets/audio/key.wav");
+        sampler.preload = "auto";
+        sampler.volume = 0.8;
+      } catch (e) { sampler = null; }
+    }
+    function playTick() {
+      var now = Date.now();
+      if (now - lastTick < 35) return;     // never pile clicks up
+      lastTick = now;
+      if (!sampler) return;
+      var a = sampler.cloneNode(false);
+      a.playbackRate = 0.9 + Math.random() * 0.22;   // natural variance
+      a.volume = 0.6 + Math.random() * 0.3;
+      var p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+    function unlockAudio() { initAudio(); }
+    ["pointerdown", "keydown", "touchstart", "scroll"].forEach(function (ev) {
+      window.addEventListener(ev, unlockAudio, { once: true, passive: true });
+    });
+
+    var tScript = [
+      { cmd: "intel reputation 45.155.205.233",
+        out: [
+          '<span class="hl">45.155.205.233</span> <span class="warn">CRITICAL &middot; known C&amp;C</span>',
+          '&nbsp;&nbsp;source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 17 threat-intel feeds agree',
+          '&nbsp;&nbsp;context&nbsp;&nbsp;&nbsp;&nbsp; agent beaconing &middot; TLS fingerprint match',
+          '<span class="ok">[OK] blocked via auto-firewall in 1.2s</span>'
+        ] },
+      { cmd: "ports",
+        out: [
+          '<span class="hl">[+] open</span>&nbsp; 22 ssh &middot; 80 http &middot; 443 https &middot; 8443 alt-tls',
+          '<span class="warn">[!] 3389 rdp exposed &mdash; not an expected port</span>',
+          '<span class="ok">[OK] service posture verified</span>'
+        ] },
+      { cmd: "site verify tuiyabelong.com --all",
+        out: [
+          '<span class="hl">tuiyabelong.com</span> ownership checks',
+          '&nbsp;&nbsp;dns txt&nbsp; <span class="ok">[VERIFIED]</span>&nbsp; bulwark-verify record found',
+          '&nbsp;&nbsp;meta&nbsp;&nbsp;&nbsp;&nbsp; <span class="ok">[VERIFIED]</span>&nbsp; tag present in index.html',
+          '&nbsp;&nbsp;file&nbsp;&nbsp;&nbsp;&nbsp; <span class="dim">[SKIP]</span> SPA catch-all (Vercel)',
+          '<span class="ok">[OK] ownership confirmed &middot; monitoring armed</span>'
+        ] },
+      { cmd: "hunt run",
+        out: [
+          '<span class="dim">scanning 47 endpoints &middot; 3.2s</span>',
+          '<span class="hl">1 hit:</span> <span class="warn">ETW hook patched on finance-laptop</span>',
+          '&nbsp;&nbsp;confidence 0.94 &middot; auto-response: <span class="ok">quarantine + isolate</span>',
+          '<span class="dim">0 false positives &middot; anchored via TPM</span>'
+        ] },
+      { cmd: "webscan clone --site tuiyabelong.com",
+        out: [
+          '<span class="hl">[+] look-alike matched</span>',
+          '&nbsp;&nbsp;<span class="err">tuiyabelong-secure-login.com</span> &middot; datacenter IR',
+          '&nbsp;&nbsp;visual similarity 91% &middot; untrusted cert &middot; aged 3 days',
+          '<span class="warn">[!] likely phishing &mdash; brand spoof</span>',
+          '<span class="ok">[OK] added to watch &middot; takedown app prepared</span>'
+        ] },
+      { cmd: "isolate 192.168.4.66 --confirm",
+        out: [
+          '&nbsp;&nbsp;host&nbsp;&nbsp;&nbsp;&nbsp; finance-laptop',
+          '&nbsp;&nbsp;reason&nbsp;&nbsp; canary credential used &middot; lateral movement',
+          '<span class="ok">[OK] all traffic blocked except the Bulwark relay</span>',
+          '<span class="ok">[OK] 192.168.4.66 isolated from network</span>'
+        ] },
+      { cmd: "doctor",
+        out: [
+          '<span class="ok">[PASS]</span> agent&nbsp;&nbsp;&nbsp; v4.0.0 online',
+          '<span class="ok">[PASS]</span> tpm&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; locked &amp; measured',
+          '<span class="ok">[PASS]</span> canaries&nbsp;&nbsp; fleet-wide armed',
+          '<span class="ok">[PASS]</span> intel&nbsp;&nbsp;&nbsp;&nbsp; feed 14s fresh'
+        ] },
+      { cmd: "stats",
+        out: [
+          '&nbsp;&nbsp;protected&nbsp;&nbsp;&nbsp;&nbsp; 47 endpoints',
+          '&nbsp;&nbsp;blocked&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1,204 threats this week',
+          '&nbsp;&nbsp;canary hits&nbsp;&nbsp; 3 (2 isolated)',
+          '&nbsp;&nbsp;uptime&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 99.98% &middot; fleet healthy'
+        ] }
+    ];
+
+    var SPEED = 78, PAUSE_OUT = 560, PAUSE_BREAK = 1800;
+    var tStep = 0, tIdx = 0, tOut = 0;
+
+    function startTty() {
+      tIdx = 0; tOut = 0;
+      termInput.innerHTML = "";
+      typeChar();
+    }
+    function typeChar() {
+      var s = tScript[tStep];
+      if (tIdx < s.cmd.length) {
+        termInput.innerHTML = esc(s.cmd.slice(0, tIdx + 1));
+        playTick();
+        tIdx++;
+        setTimeout(typeChar, SPEED + Math.random() * 42);
+      } else {
+        pushLine('<span class="term-prompt">bulwark&nbsp;&gt;</span> <span class="c">' + esc(s.cmd) + '</span>');
+        termInput.innerHTML = "";
+        setTimeout(printNextOut, PAUSE_OUT);
+      }
+    }
+    function printNextOut() {
+      var s = tScript[tStep];
+      if (tOut < s.out.length) {
+        pushLine(s.out[tOut]);
+        tOut++;
+        setTimeout(printNextOut, PAUSE_OUT + Math.random() * 240);
+      } else {
+        tStep = (tStep + 1) % tScript.length;
+        setTimeout(function () {
+          if (tStep === 0) pushLine('<span class="dim">— live session — replaying —</span>');
+          startTty();
+        }, PAUSE_BREAK);
+      }
+    }
+
+    /* floating window: minimise / close / reopen via tab */
+    var termMin = document.getElementById("termMin");
+    var termClose = document.getElementById("termClose");
+    var termTab = document.getElementById("termTab");
+    if (termMin) termMin.addEventListener("click", function () { term.classList.toggle("minimized"); });
+    if (termClose) termClose.addEventListener("click", function () {
+      term.classList.add("hidden");
+      termTab.classList.add("show");
+    });
+    if (termTab) termTab.addEventListener("click", function () {
+      term.classList.remove("hidden", "minimized");
+      termTab.classList.remove("show");
+    });
+
+    /* begin the loop immediately — the window floats over the page */
+    pushLine('<span class="dim">Bulwark security shell v4.0.0 &mdash; type a command to begin</span>');
+    pushLine('<span class="dim">try: <span class="c">help</span> &middot; <span class="c">doctor</span> &middot; <span class="c">hunt run</span> &middot; <span class="c">webscan clone</span></span>');
+    startTty();
+  }
 })();
