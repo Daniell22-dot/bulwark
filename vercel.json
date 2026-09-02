@@ -73,48 +73,6 @@
       ]
     }
   ],
-  "redirects": [
-    {
-      "source": "/features",
-      "destination": "/features.html",
-      "permanent": true
-    },
-    {
-      "source": "/pricing",
-      "destination": "/pricing.html",
-      "permanent": true
-    },
-    {
-      "source": "/reports",
-      "destination": "/reports.html",
-      "permanent": true
-    },
-    {
-      "source": "/about",
-      "destination": "/about.html",
-      "permanent": true
-    },
-    {
-      "source": "/contact",
-      "destination": "/contact.html",
-      "permanent": true
-    },
-    {
-      "source": "/terms",
-      "destination": "/terms.html",
-      "permanent": true
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html",
-      "permanent": true
-    },
-    {
-      "source": "/dpa",
-      "destination": "/dpa.html",
-      "permanent": true
-    }
-  ],
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
