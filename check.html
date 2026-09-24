@@ -202,10 +202,12 @@
    https://intel.bulwark.co.ke  (free Cloudflare Tunnel)
 ----------------------------------------------------------------- */
 window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
-/* Bundled snapshot (data/blocklist.json) makes the checker work even when the
-   engine/server is offline. Refresh it via scripts/build-blocklist.py or the
-   "Refresh threat-intel snapshot" GitHub Action. */
+/* Bundled snapshot (data/blocklist.json + data/blocklist.js) makes the checker
+   work even when the engine/server is offline. Refresh it via
+   scripts/build-blocklist.py or the "Refresh threat-intel snapshot" GitHub Action.
+   The .js file works on file:// (local testing); the .json is used on the web. */
 window.BULWARK_SNAPSHOT = "data/blocklist.json";
+window.BULWARK_SNAPSHOT_JS = "data/blocklist.js";
 </script>
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer>
@@ -316,11 +318,36 @@ window.BULWARK_SNAPSHOT = "data/blocklist.json";
     var start = (base & mask) >>> 0;
     return [start, (start | (~mask >>> 0)) >>> 0];
   }
-  var snapPromise = null;
+
+  /* Load snapshot: prefer the JS file (works on file://), fall back to JSON fetch */
+  var snapCache = null;
   function loadSnapshot() {
-    if (snapPromise) return snapPromise;
-    snapPromise = fetch(window.BULWARK_SNAPSHOT || "data/blocklist.json", { headers: { "Accept": "application/json" } })
-      .then(function (r) { if (!r.ok) throw new Error("snap"); return r.json(); })
+    if (snapCache) return Promise.resolve(snapCache);
+
+    var jsUrl = window.BULWARK_SNAPSHOT_JS || "data/blocklist.js";
+    var jsonUrl = window.BULWARK_SNAPSHOT || "data/blocklist.json";
+
+    // 1) Try the JS file first (works on file:// via script injection)
+    var jsPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = jsUrl;
+      s.onload = function () {
+        var d = window.BULWARK_BLOCKLIST;
+        if (d) { cleanup(); resolve(d); }
+        else { cleanup(); reject(new Error("js-empty")); }
+      };
+      s.onerror = function () { cleanup(); reject(new Error("js-fail")); };
+      function cleanup() { s.onload = s.onerror = null; s.parentNode && s.parentNode.removeChild(s); }
+      document.head.appendChild(s);
+      // timeout for local files that just hang
+      setTimeout(function () { cleanup(); reject(new Error("js-timeout")); }, 3000);
+    });
+
+    // 2) Fallback to JSON fetch (works on http(s))
+    var jsonPromise = fetch(jsonUrl, { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("json-fail"); return r.json(); });
+
+    return Promise.race([jsPromise, jsonPromise])
       .then(function (d) {
         var nets = [], doms = [];
         Object.keys(d.nets || {}).forEach(function (src) {
@@ -329,10 +356,12 @@ window.BULWARK_SNAPSHOT = "data/blocklist.json";
         Object.keys(d.domains || {}).forEach(function (src) {
           (d.domains[src] || []).forEach(function (h) { doms.push({ d: h, src: src }); });
         });
-        return { generatedUtc: d.generatedUtc, nets: nets, doms: doms };
+        var snap = { generatedUtc: d.generatedUtc, nets: nets, doms: doms };
+        snapCache = snap;
+        return snap;
       });
-    return snapPromise;
   }
+
   function localCheck(kind, value) {
     return loadSnapshot().then(function (snap) {
       var srcs = [];
@@ -349,7 +378,7 @@ window.BULWARK_SNAPSHOT = "data/blocklist.json";
       srcs = srcs.filter(function (v, i, a) { return a.indexOf(v) === i; });
       var listed = srcs.length > 0;
       var shared = kind === "domain" && SHARED.indexOf(value) >= 0;
-      return { sources: srcs, verdict: !listed ? "CLEAN" : shared ? "CAUTION" : "BLOCK", generatedUtc: snap.generatedUtc };
+      return { sources: srcs, verdict: !listed ? "CLEAN" : shared ? "CAUTION" : "BLOCK", generatedUtc: snapCache.generatedUtc };
     });
   }
 

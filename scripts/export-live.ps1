@@ -22,4 +22,9 @@ New-Item -ItemType Directory -Force -Path (Split-Path $Out) | Out-Null
 $json = $payload | ConvertTo-Json -Depth 8
 [System.IO.File]::WriteAllText($Out, $json, (New-Object System.Text.UTF8Encoding($false)))
 
-Write-Host "wrote $Out ($(@($live.events).Count) events)"
+# Also emit a JS file for file:// offline support
+$jsOut = $Out -replace '\.json$', '.js'
+$js = "window.BULWARK_LIVE_SNAPSHOT = " + $json + ";"
+[System.IO.File]::WriteAllText($jsOut, $js, (New-Object System.Text.UTF8Encoding($false)))
+
+Write-Host "wrote $Out ($(@($live.events).Count) events) + $jsOut"

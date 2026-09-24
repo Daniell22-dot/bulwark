@@ -195,10 +195,11 @@
    https://live.bulwark.co.ke  (free Cloudflare Tunnel)
 ----------------------------------------------------------------- */
 window.BULWARK_LIVE = "https://live.bulwark.co.ke";
-/* Bundled snapshot (data/live.json) lets the map render the last known
+/* Bundled snapshot (data/live.json + data/live.js) lets the map render the last known
    detections when the fleet console is offline. Refresh it with
    scripts/export-live.ps1 while the console is running. */
 window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
+window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
 </script>
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer>
@@ -338,10 +339,37 @@ window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
     st.innerHTML = "<b data-st='offline'>" + t(on ? STR.online : STR.offline) + "</b>";
   }
 
+  var liveCache = null;
+  function loadLiveSnapshot() {
+    if (liveCache) return Promise.resolve(liveCache);
+
+    var jsUrl = window.BULWARK_SNAPSHOT_LIVE_JS || "data/live.js";
+    var jsonUrl = window.BULWARK_SNAPSHOT_LIVE || "data/live.json";
+
+    var jsPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = jsUrl;
+      s.onload = function () {
+        var d = window.BULWARK_LIVE_SNAPSHOT;
+        if (d) { cleanup(); resolve(d); }
+        else { cleanup(); reject(new Error("js-empty")); }
+      };
+      s.onerror = function () { cleanup(); reject(new Error("js-fail")); };
+      function cleanup() { s.onload = s.onerror = null; s.parentNode && s.parentNode.removeChild(s); }
+      document.head.appendChild(s);
+      setTimeout(function () { cleanup(); reject(new Error("js-timeout")); }, 3000);
+    });
+
+    var jsonPromise = fetch(jsonUrl, { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("json-fail"); return r.json(); });
+
+    return Promise.race([jsPromise, jsonPromise])
+      .then(function (d) { liveCache = d; return d; });
+  }
+
   function showOffline() {
     setStatus(false);
-    return fetch(window.BULWARK_SNAPSHOT_LIVE || "data/live.json", { headers: { "Accept": "application/json" } })
-      .then(function (r) { if (!r.ok) throw new Error("snap"); return r.json(); })
+    return loadLiveSnapshot()
       .then(function (d) {
         var n = (d.events || []).length;
         render(d.events || [], d.updatedUtc);

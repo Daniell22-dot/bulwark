@@ -137,7 +137,7 @@ def main():
         try:
             entries = PARSERS[kind](fetch(url))
             error = None
-        except Exception as ex:  # a dead feed must never break the snapshot
+        except Exception as ex:
             entries, error = [], str(ex)
         if kind == "url_hosts":
             if entries:
@@ -157,8 +157,16 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, separators=(",", ":"), ensure_ascii=False)
+
+    # Also emit a JS file that works on file:// (no fetch needed)
+    js_out = OUT.replace(".json", ".js")
+    with open(js_out, "w", encoding="utf-8") as fh:
+        fh.write("window.BULWARK_BLOCKLIST = ")
+        json.dump(payload, fh, separators=(",", ":"), ensure_ascii=False)
+        fh.write(";")
+
     size = os.path.getsize(OUT)
-    print(f"wrote {os.path.relpath(OUT)} ({size/1024:.0f} KiB)")
+    print(f"wrote {os.path.relpath(OUT)} ({size/1024:.0f} KiB) + {os.path.basename(js_out)}")
 
 
 if __name__ == "__main__":

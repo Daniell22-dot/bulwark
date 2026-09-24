@@ -1,0 +1,6 @@
+﻿window.BULWARK_LIVE_SNAPSHOT = {
+  "generatedUtc": "2026-09-24T00:00:00Z",
+  "updatedUtc": "2026-09-24T00:00:00Z",
+  "events": []
+}
+;
