@@ -195,6 +195,10 @@
    https://live.bulwark.co.ke  (free Cloudflare Tunnel)
 ----------------------------------------------------------------- */
 window.BULWARK_LIVE = "https://live.bulwark.co.ke";
+/* Bundled snapshot (data/live.json) lets the map render the last known
+   detections when the fleet console is offline. Refresh it with
+   scripts/export-live.ps1 while the console is running. */
+window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
 </script>
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer>
@@ -209,7 +213,9 @@ window.BULWARK_LIVE = "https://live.bulwark.co.ke";
     empty:    { en: "No detections yet. The fleet console is listening — as soon as an agent reports a threat, it lands here.", sw: "Hakuna matukio bado. Fleet console inasikiliza — mara tu agent inaporipoti tishio, litaonekana hapa." },
     justnow:  { en: "just now", sw: "sasa hivi" },
     minsAgo:  { en: "min ago", sw: "dakika iliyopita" },
-    bannerOn: { en: "Map is offline — the fleet console is not reachable on this network. Start Sentinel.Console and expose /api/live (see your deployment notes), then this page lights up on its own.", sw: "Ramani haipo mtandaoni — fleet console haifikiki. Anzisha Sentinel.Console na ufunue /api/live (tazama maelezo yako ya usambazaji), kisha ukurasa huu utawaka peke yake." }
+    bannerOn: { en: "Map is offline — the fleet console is not reachable on this network. Start Sentinel.Console and expose /api/live (see your deployment notes), then this page lights up on its own.", sw: "Ramani haipo mtandaoni — fleet console haifikiki. Anzisha Sentinel.Console na ufunue /api/live (tazama maelezo yako ya usambazaji), kisha ukurasa huu utawaka peke yake." },
+    bannerCached: { en: "Fleet console offline — showing the last bundled snapshot from", sw: "Fleet console haipo mtandaoni — inaonyesha snapshot ya mwisho iliyopakiwa ya" },
+    bannerEmpty: { en: "Fleet console offline and no snapshot is bundled yet. Once an agent reports, export data/live.json (scripts/export-live.ps1) and commit it.", sw: "Fleet console haipo mtandaoni na hakuna snapshot bado. Mara agent inaporipoti, hamisha data/live.json (scripts/export-live.ps1) na uiweke." }
   };
   var liveBase = window.BULWARK_LIVE || "http://127.0.0.1:5000";
   var svg = document.getElementById("kenyaSvg");
@@ -326,21 +332,39 @@ window.BULWARK_LIVE = "https://live.bulwark.co.ke";
     document.getElementById("stCount").textContent = " " + (located + "/" + (events || []).length + " on map");
   }
 
+  function setStatus(on) {
+    var st = document.getElementById("stStatus");
+    if (on) st.setAttribute("data-on", "1"); else st.removeAttribute("data-on");
+    st.innerHTML = "<b data-st='offline'>" + t(on ? STR.online : STR.offline) + "</b>";
+  }
+
+  function showOffline() {
+    setStatus(false);
+    return fetch(window.BULWARK_SNAPSHOT_LIVE || "data/live.json", { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("snap"); return r.json(); })
+      .then(function (d) {
+        var n = (d.events || []).length;
+        render(d.events || [], d.updatedUtc);
+        offBanner.textContent = n
+          ? t(STR.bannerCached) + " " + new Date(d.updatedUtc || d.generatedUtc).toLocaleString()
+          : t(STR.bannerEmpty);
+        offBanner.classList.add("show");
+      })
+      .catch(function () {
+        offBanner.textContent = t(STR.bannerOn);
+        offBanner.classList.add("show");
+      });
+  }
+
   function poll() {
     fetch(liveBase + "/api/live", { headers: { "Accept": "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (d) {
-        document.getElementById("stStatus").setAttribute("data-on", "1");
-        document.getElementById("stStatus").innerHTML = "<b data-st='offline'>" + t(STR.online) + "</b>";
+        setStatus(true);
         offBanner.classList.remove("show");
         render(d.events || [], d.updatedUtc);
       })
-      .catch(function () {
-        document.getElementById("stStatus").removeAttribute("data-on");
-        document.getElementById("stStatus").innerHTML = "<b data-st='offline'>" + t(STR.offline) + "</b>";
-        offBanner.textContent = t(STR.bannerOn);
-        offBanner.classList.add("show");
-      });
+      .catch(showOffline);
   }
 
   drawBase();

@@ -202,6 +202,10 @@
    https://intel.bulwark.co.ke  (free Cloudflare Tunnel)
 ----------------------------------------------------------------- */
 window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
+/* Bundled snapshot (data/blocklist.json) makes the checker work even when the
+   engine/server is offline. Refresh it via scripts/build-blocklist.py or the
+   "Refresh threat-intel snapshot" GitHub Action. */
+window.BULWARK_SNAPSHOT = "data/blocklist.json";
 </script>
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer>
@@ -223,6 +227,7 @@ window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
     invalid:    { en: "That doesn\u2019t look like an IP address or a domain.", sw: "Hilo halionekani kama IP au mwenyeji (domain)." },
     offline:    { en: "Checker is offline right now — the intel service is not reachable. Please try again shortly.", sw: "Cheki haipo mtandaoni sasa — huduma haifikiki. Jaribu tena baadaye kidogo." },
     rate:       { en: "Slow down — this free tier allows a limited number of checks per minute. Try again in a moment.", sw: "Polepole — upi wa bure unaruhusu idadi fulani ya angalizi kwa dakika. Jaribu tena baadaye." },
+    snapshot:   { en: "bundled snapshot", sw: "snapshot iliyopakiwa" },
     sourcesHead:{ en: "Sources", sw: "Vyanzo" }
   };
   var intelBase = window.BULWARK_INTEL || "http://127.0.0.1:5599";
@@ -273,7 +278,7 @@ window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
 
   function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
-  function showVerdict(kind, value, sources, verdict, whenUtc) {
+  function showVerdict(kind, value, sources, verdict, whenUtc, snapshot) {
     verdict.classList.add("show");
     vValue.textContent = value;
     var cls = verdict === "BLOCK" ? "block" : verdict === "CAUTION" ? "caution" : "clean";
@@ -288,7 +293,64 @@ window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
       vSources.appendChild(span);
     });
     var gist = verdict === "BLOCK" || verdict === "CAUTION" ? t(STR.onLists) : t(STR.noLists);
-    vMeta.textContent = gist + " · " + t(STR.checked) + " " + new Date(whenUtc).toLocaleString();
+    var when = whenUtc ? new Date(whenUtc).toLocaleString() : "—";
+    vMeta.textContent = gist + " · " + t(STR.checked) + " " + when + (snapshot ? " · " + t(STR.snapshot) : "");
+  }
+
+  /* --- offline fallback: match against the bundled snapshot --- */
+  var SHARED = ["github.com","gitlab.com","bitbucket.org","sourceforge.net","drive.google.com",
+    "docs.google.com","dropbox.com","onedrive.live.com","mega.nz","mediafire.com","sendspace.com",
+    "anonfiles.com","discord.com","discordapp.net","telegram.me","t.me"];
+
+  function ipToInt(ip) {
+    var p = ip.split("."); if (p.length !== 4) return null;
+    var n = 0;
+    for (var i = 0; i < 4; i++) { var o = +p[i]; if (!(o >= 0 && o <= 255)) return null; n = n * 256 + o; }
+    return n >>> 0;
+  }
+  function cidrToRange(cidr) {
+    var parts = cidr.split("/"); if (parts.length !== 2) return null;
+    var base = ipToInt(parts[0]), p = +parts[1];
+    if (base === null || !(p >= 0 && p <= 32)) return null;
+    var mask = p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0;
+    var start = (base & mask) >>> 0;
+    return [start, (start | (~mask >>> 0)) >>> 0];
+  }
+  var snapPromise = null;
+  function loadSnapshot() {
+    if (snapPromise) return snapPromise;
+    snapPromise = fetch(window.BULWARK_SNAPSHOT || "data/blocklist.json", { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("snap"); return r.json(); })
+      .then(function (d) {
+        var nets = [], doms = [];
+        Object.keys(d.nets || {}).forEach(function (src) {
+          (d.nets[src] || []).forEach(function (c) { var rg = cidrToRange(c); if (rg) nets.push({ s: rg[0], e: rg[1], src: src }); });
+        });
+        Object.keys(d.domains || {}).forEach(function (src) {
+          (d.domains[src] || []).forEach(function (h) { doms.push({ d: h, src: src }); });
+        });
+        return { generatedUtc: d.generatedUtc, nets: nets, doms: doms };
+      });
+    return snapPromise;
+  }
+  function localCheck(kind, value) {
+    return loadSnapshot().then(function (snap) {
+      var srcs = [];
+      if (kind === "ip") {
+        var n = ipToInt(value);
+        snap.nets.forEach(function (r) { if (n >= r.s && n <= r.e) srcs.push(r.src); });
+      } else {
+        var parts = value.split(".");
+        for (var i = 0; i < parts.length - 1; i++) {
+          var cand = parts.slice(i).join(".");
+          snap.doms.forEach(function (r) { if (r.d === cand) srcs.push(r.src); });
+        }
+      }
+      srcs = srcs.filter(function (v, i, a) { return a.indexOf(v) === i; });
+      var listed = srcs.length > 0;
+      var shared = kind === "domain" && SHARED.indexOf(value) >= 0;
+      return { sources: srcs, verdict: !listed ? "CLEAN" : shared ? "CAUTION" : "BLOCK", generatedUtc: snap.generatedUtc };
+    });
   }
 
   function showErr(msg) { err.textContent = msg; err.style.display = "block"; }
@@ -302,8 +364,9 @@ window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
     btn.textContent = t(STR.checking);
     btn.disabled = true;
     verdict.classList.remove("show");
+    var done = function () { btn.textContent = t(STR.checkGo); btn.disabled = false; };
 
-    fetch(intelBase + "/intel/check/" + encodeURIComponent(raw), {
+    var live = fetch(intelBase + "/intel/check/" + encodeURIComponent(raw), {
       method: "GET",
       headers: { "Accept": "application/json" }
     }).then(function (r) {
@@ -311,16 +374,27 @@ window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
       if (r.status === 400) throw new Error("bad");
       if (!r.ok) throw new Error("off");
       return r.json();
-    }).then(function (d) {
-      showVerdict(kind, d.value || raw, d.sources || [], d.verdict || "CLEAN", d.checkedUtc);
-    }).catch(function (e) {
-      if ((e && e.message) === "rate") showErr(t(STR.rate));
-      else if ((e && e.message) === "bad") showErr(t(STR.invalid));
-      else showErr(t(STR.offline));
-    }).then(function () {
-      btn.textContent = t(STR.checkGo);
-      btn.disabled = false;
     });
+    // don't hang the UI if the tunnel/server is asleep — fall back fast
+    var raced = new Promise(function (resolve, reject) {
+      var to = setTimeout(function () { reject(new Error("off")); }, 5000);
+      live.then(function (d) { clearTimeout(to); resolve(d); },
+                function (e) { clearTimeout(to); reject(e); });
+    });
+
+    raced.then(function (d) {
+      showVerdict(kind, d.value || raw, d.sources || [], d.verdict || "CLEAN", d.checkedUtc, false);
+    }).catch(function (e) {
+      var msg = e && e.message;
+      // engine unreachable → answer from the bundled snapshot instead
+      localCheck(kind, raw).then(function (r) {
+        showVerdict(kind, raw, r.sources, r.verdict, r.generatedUtc, true);
+      }).catch(function () {
+        if (msg === "rate") showErr(t(STR.rate));
+        else if (msg === "bad") showErr(t(STR.invalid));
+        else showErr(t(STR.offline));
+      });
+    }).then(done, done);
   }
 
   btn.addEventListener("click", run);
