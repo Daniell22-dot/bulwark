@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulwark Live — Kenya threat map &mdash; what the fleet is seeing now</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="A live, privacy-safe picture of the attacks the Bulwark fleet is deflecting across Kenya right now - generated entirely from our own agents' telemetry, no third-party trackers.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bulwark">
+<meta property="og:title" content="Bulwark Live — Kenya threat map">
+<meta property="og:description" content="Live attacks deflected by the Bulwark fleet across Kenya, fed entirely by our own agents' telemetry.">
+<meta property="og:url" content="https://bulwark.co.ke/map">
+<meta property="og:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bulwark Live — Kenya threat map">
+<meta name="twitter:description" content="Live attacks deflected by the Bulwark fleet across Kenya, fed entirely by our own agents' telemetry.">
+<meta name="twitter:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="assets/img/site.webmanifest">
+<link rel="preconnect" href="https://bulwark.co.ke">
+<link rel="dns-prefetch" href="https://bulwark.co.ke">
+<link rel="canonical" href="https://bulwark.co.ke/map">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Bulwark Live",
+  "url": "https://bulwark.co.ke/map",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": "Any",
+  "description": "A live, privacy-safe map of the attacks the Bulwark fleet deflects across Kenya, built entirely from our own agents' telemetry.",
+  "publisher": { "@type": "Organization", "name": "Bulwark Security", "url": "https://bulwark.co.ke/" }
+}
+</script>
+<style>
+  .map-frame { background: rgba(0,0,0,.5); border: 1px solid var(--stroke); padding: 18px; }
+  #kenyaSvg { width: 100%; height: auto; display: block; }
+  #kenyaSvg .land { fill: #111c30; stroke: var(--neon); stroke-width: 1.4; }
+  #kenyaSvg .lake { fill: #0a1620; stroke: #1f3a56; stroke-width: .8; }
+  #kenyaSvg .city { fill: #33415c; }
+  #kenyaSvg .citylabel { fill: #64748b; font: 600 10px 'JetBrains Mono', monospace; letter-spacing: .06em; }
+  #kenyaSvg .smark { fill: #ff5a5f; }
+  #kenyaSvg .smark.med { fill: #ffb347; }
+  #kenyaSvg .smark.low { fill: #ffd94d; }
+  #kenyaSvg .pulse circle { animation: blinkmap 1.6s ease-out infinite; transform-origin: center; }
+  @keyframes blinkmap { 0% { opacity: .9; } 100% { opacity: 0; } }
+  .map-stats { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: center; }
+  .map-stats .st { color: var(--txt-faint); font-family: var(--font-mono); font-size: .8rem; }
+  .map-stats .st b { color: var(--neon); font-weight: 700; }
+  .livefeed { max-height: 420px; overflow: auto; border: 1px solid var(--stroke); background: #000; }
+  .feed-row { display: grid; grid-template-columns: auto 1.2fr 1fr auto; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #0e1726; font-family: var(--font-mono); font-size: .78rem; align-items: center; }
+  .feed-row:last-child { border-bottom: 0; }
+  .feed-row .src { word-break: break-all; }
+  .feed-row .type { color: var(--txt-dim); }
+  .feed-row .when { color: var(--txt-faint); white-space: nowrap; }
+  .sev-pill { display: inline-block; padding: 2px 9px; border: 1px solid currentColor; font-size: .64rem; font-weight: 800; letter-spacing: .1em; }
+  .sev-pill.s1 { color: #ffd94d; }
+  .sev-pill.s2 { color: #ffb347; }
+  .sev-pill.s3 { color: #ff5a5f; }
+  .sev-pill.s4 { color: #ff5a5f; background: rgba(255,90,95,.1); }
+  .offline-banner { display: none; padding: 14px 18px; margin-top: 14px; border: 1px solid #ffb347; color: #ffd9a0; background: rgba(255,179,71,.06); font-size: .9rem; }
+  .offline-banner.show { display: block; }
+  .lang-switch { display: inline-flex; border: 1px solid var(--stroke); }
+  .lang-switch button { background: transparent; color: var(--txt-dim); border: 0; padding: 8px 18px; cursor: pointer; font-family: var(--font-mono); font-size: .78rem; letter-spacing: .1em; }
+  .lang-switch button.on { background: var(--neon); color: #000; font-weight: 800; }
+  @media (max-width:680px){ .feed-row { grid-template-columns: auto 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="logo" style="width:34px;height:34px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span><span class="brand-tag" style="display:none"></span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="reports.html">Reports</a>
+      <a href="check.html">Check</a>
+      <a href="map.html" class="active">Live map</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a class="btn btn-neon nav-cta" href="contact.html">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+      <span class="kicker">Bulwark Live &middot; your own country&apos;s threat picture</span>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button id="langEn" class="on" type="button">EN</button>
+        <button id="langSw" type="button">SW</button>
+      </div>
+    </div>
+    <h1>Attacks being blocked<br><span class="neon">across Kenya, live.</span></h1>
+    <p>Every dot is a real detection from a Bulwark-protected machine that self-reports its location. The stream below shows the rest. No agent names, no file paths, no personal data &mdash; just the fight, as it happens.</p>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <div class="map-frame">
+      <div class="map-stats" style="margin-bottom:14px">
+        <span class="st" id="stStatus"><b data-st="offline">offline</b></span>
+        <span class="st" id="stEvents"><b>0</b> <span data-st="ev">events</span></span>
+        <span class="st" id="stUpdated"><span data-st="upd">refreshes</span> &mdash;<span id="stCount"> 0</span></span>
+      </div>
+      <svg id="kenyaSvg" viewBox="0 0 400 470" role="img" aria-label="Approximate outline of Kenya with live threat markers"></svg>
+    </div>
+    <div class="offline-banner" id="offBanner"></div>
+
+    <div class="sec-head" style="margin-top:48px"><span class="kicker">Live stream</span><h2>Latest detections, <span class="neon">as they land.</span></h2></div>
+    <div class="livefeed" id="liveFeed"><p class="note" style="padding:20px;text-align:center" id="feedEmpty"></p></div>
+
+    <div class="callout blue" style="margin-top:34px"><p><b style="color:var(--txt)">Privacy by construction.</b> The public stream carries only the minimal facts: attack type, source address and a region dot. Machine names, usernames and internal details never leave your console and never appear here.</p></div>
+  </div>
+</section>
+
+<section class="section-alt section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">How it works</span><h2>Yours, not a <span class="neon">vendor&apos;s.</span></h2><p>Unlike big-brand heatmaps that resell third-party data, this map is generated solely by your own agents&apos; telemetry &mdash; the quiet proof that your fleet is doing its job.</p></div>
+    <div class="grid grid-3">
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="radar" style="width:24px;height:24px"></span></div><h3>Agents detect</h3><p>Every Bulwark agent pushes its open detections to your fleet console once a minute &mdash; nothing else ever leaves the machine.</p></div>
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="map" style="width:24px;height:24px"></span></div><h3>Console maps</h3><p>The fleet console keeps a privacy-scrubbed public feed. Machines that self-report a location become a dot; the rest join the live stream.</p></div>
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="check" style="width:24px;height:24px"></span></div><h3>You watch</h3><p>Open it on any screen, or embed it on a lobby display. It updates every 30 seconds with zero third-party trackers or embeds.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <h2>Want your own live map <span class="neon">on every site?</span></h2>
+    <p>We deploy the fleet console + tunnel for you and hand over the keys to your own map.</p>
+    <div class="cta-actions">
+      <a class="btn btn-neon btn-lg" href="contact.html">Talk to us <span class="g" data-icon="whatsapp" style="width:18px;height:18px"></span></a>
+      <a class="btn btn-ghost btn-lg" href="check.html">Try the checker</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><span class="logo" style="width:30px;height:30px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span></a><p style="margin-top:14px">Deceptive &amp; agentic endpoint security, engineered in Nyeri County, Kenya.</p></div>
+      <div><h4>Product</h4><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="check.html">Free link check</a><a href="map.html">Live threat map</a></div>
+      <div><h4>Support</h4><a href="contact.html">Contact</a><a href="about.html">Why Bulwark</a></div>
+      <div><h4>Legal</h4><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Use</a><a href="dpa.html">Data Processing</a></div>
+      <div><h4>Contact</h4><a href="https://wa.me/254796874539" target="_blank"><span class="g" data-icon="whatsapp"></span> WhatsApp +254 796 874 539</a><a href="tel:+254796874539"><span class="g" data-icon="phone"></span> +254 796 874 539</a><a href="sms:+254796874539"><span class="g" data-icon="message"></span> SMS +254 796 874 539</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Bulwark Security. Nyeri County, Kenya. All rights reserved.</span><span class="payment">bulwark &gt;_ stay safe out there</span></div>
+  </div>
+</footer>
+
+<a class="float-wa" href="https://wa.me/254796874539" target="_blank" aria-label="Chat on WhatsApp"><span class="g" data-icon="whatsapp" style="width:26px;height:26px"></span></a>
+
+<!-- ANIMATED LIVE TERMINAL -->
+<div class="term" id="term" aria-label="Live Bulwark shell demo">
+  <div class="term-bar">
+    <span class="term-dot red"></span><span class="term-dot amber"></span><span class="term-dot green"></span>
+    <span class="term-title">bulwark — command centre</span>
+    <span class="term-live"><span class="live-dot"></span> LIVE</span>
+    <span class="term-actions">
+      <button class="term-act" id="termMin" title="Minimise" aria-label="Minimise terminal">–</button>
+      <button class="term-act" id="termClose" title="Close" aria-label="Close terminal">&times;</button>
+    </span>
+  </div>
+  <div class="term-body" id="termBody">
+    <pre class="term-out" id="termOut"></pre>
+    <div class="term-line">
+      <span class="term-prompt">bulwark&nbsp;&gt;</span>
+      <span class="term-input" id="termInput"></span>
+      <span class="term-cursor"></span>
+    </div>
+  </div>
+</div>
+<button class="term-tab" id="termTab" aria-label="Reopen live terminal"><span class="live-dot dark"></span> Live shell</button>
+
+<script>
+/* -----------------------------------------------------------------
+   Point Bulwark Live at your fleet console (see FREE-TOOLS-DEPLOY.md
+   in the SENTINEL repo). Default target:
+   https://live.bulwark.co.ke  (free Cloudflare Tunnel)
+----------------------------------------------------------------- */
+window.BULWARK_LIVE = "https://live.bulwark.co.ke";
+</script>
+<script defer src="assets/js/main.js" data-cfasync="false"></script>
+<script defer>
+(function () {
+  "use strict";
+  var LANG = { en: 1, sw: 0 };
+  var STR = {
+    offline:  { en: "offline", sw: "haipo mtandaoni" },
+    online:   { en: "live", sw: "moja kwa moja" },
+    events:   { en: "events", sw: "matukio" },
+    refresh:  { en: "refreshes every 30s", sw: "inaburudishwa kila sek 30" },
+    empty:    { en: "No detections yet. The fleet console is listening — as soon as an agent reports a threat, it lands here.", sw: "Hakuna matukio bado. Fleet console inasikiliza — mara tu agent inaporipoti tishio, litaonekana hapa." },
+    justnow:  { en: "just now", sw: "sasa hivi" },
+    minsAgo:  { en: "min ago", sw: "dakika iliyopita" },
+    bannerOn: { en: "Map is offline — the fleet console is not reachable on this network. Start Sentinel.Console and expose /api/live (see your deployment notes), then this page lights up on its own.", sw: "Ramani haipo mtandaoni — fleet console haifikiki. Anzisha Sentinel.Console na ufunue /api/live (tazama maelezo yako ya usambazaji), kisha ukurasa huu utawaka peke yake." }
+  };
+  var liveBase = window.BULWARK_LIVE || "http://127.0.0.1:5000";
+  var svg = document.getElementById("kenyaSvg");
+  var NS = "http://www.w3.org/2000/svg";
+  var feed = document.getElementById("liveFeed");
+  var offBanner = document.getElementById("offBanner");
+
+  function t(o) { return o[LANG.en ? "en" : "sw"]; }
+  function setLang() {
+    document.getElementById("langEn").classList.toggle("on", LANG.en === 1);
+    document.getElementById("langSw").classList.toggle("on", LANG.en === 0);
+    document.querySelectorAll("[data-st]").forEach(function (el) {
+      var k = el.getAttribute("data-st");
+      if (k === "offline") el.textContent = t(STR[ document.getElementById("stStatus").getAttribute("data-on") ? "online" : "offline" ]);
+      if (k === "ev") el.textContent = t(STR.events);
+      if (k === "upd") el.textContent = t(STR.refresh);
+    });
+    document.getElementById("feedEmpty").textContent = t(STR.empty);
+  }
+
+  /* --- projection + base geography (stylised, approximate) --- */
+  var LON_MIN = 33.7, LON_MAX = 41.7, LAT_MAX = 5.4, LAT_MIN = -4.9;
+  function px(lon) { return (lon - LON_MIN) / (LON_MAX - LON_MIN) * 400; }
+  function py(lat) { return (LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * 470; }
+  function poly(points) {
+    return points.map(function (p) { return px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1); }).join(" ");
+  }
+  var KENYA = [
+    [34.60,4.95],[35.85,4.85],[36.9,4.7],[38.0,4.55],[39.0,4.4],[40.0,4.1],
+    [40.95,3.95],[41.02,3.5],[41.2,2.7],[41.25,1.6],[41.1,0.6],[40.9,-0.2],
+    [40.75,-0.9],[40.45,-1.55],[39.9,-1.9],[39.55,-1.75],[39.6,-2.4],[39.3,-2.75],
+    [39.1,-3.5],[38.9,-4.05],[38.55,-4.55],[37.9,-4.7],[37.1,-4.3],[36.7,-3.6],
+    [36.4,-2.9],[36.25,-2.3],[36.6,-1.8],[36.5,-1.35],[35.6,-1.3],[34.9,-1.35],
+    [34.45,-1.6],[34.15,-1.5],[33.92,-1.2],[33.95,-0.6],[34.1,-0.2],[34.0,0.3],
+    [34.15,0.8],[34.5,1.15],[34.75,1.6],[34.55,2.1],[34.6,2.8],[34.55,3.3],
+    [34.9,3.7],[35.15,4.2],[34.8,4.6],[34.6,4.95]
+  ];
+  var LAKE = [
+    [34.75,-0.45],[34.15,-0.4],[33.9,-0.5],[33.92,-0.9],[34.05,-1.25],
+    [34.35,-1.6],[34.6,-1.7],[34.75,-1.35],[34.7,-0.95],[34.75,-0.45]
+  ];
+  var CITIES = [
+    ["Nairobi", -1.286, 36.817], ["Mombasa", -4.04, 39.66], ["Kisumu", -0.09, 34.75],
+    ["Eldoret", 0.51, 35.27], ["Nyeri", -0.42, 36.95], ["Garissa", -0.46, 39.65]
+  ];
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(n);
+    return n;
+  }
+  function drawBase() {
+    el("polygon", { points: poly(KENYA), "class": "land" });
+    el("polygon", { points: poly(LAKE), "class": "lake" });
+    CITIES.forEach(function (c) {
+      el("circle", { cx: px(c[2]).toFixed(1), cy: py(c[1]).toFixed(1), r: 2, "class": "city" });
+      var lb = c[0];
+      if (c[0] === "Mombasa" || c[0] === "Kisumu" || c[0] === "Eldoret") lb = c[0].slice(0, 3) + ".";
+      el("text", { x: (px(c[2]) + 5).toFixed(1), y: (py(c[1]) + 3).toFixed(1), "class": "citylabel" }).textContent = lb;
+    });
+  }
+
+  var pings = { };
+
+  function addMarker(e) {
+    if (e.lat == null || e.lon == null) return;
+    var x = px(e.lon), y = py(e.lat);
+    var sev = e.severity || 0;
+    var cls = sev >= 3 ? "smark" : sev === 2 ? "smark med" : "smark low";
+    var label = (e.type || "") + " · " + (e.sourceIp || "") + (e.place ? " · " + e.place : "");
+    var g = el("g", { transform: "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")", "data-marker": "1" });
+    var pulse = el("g", { "class": "pulse" }, g);
+    el("circle", { r: 3, "class": cls }, g);
+    el("circle", { r: 3, "class": cls }, pulse);
+    el("circle", { r: 7, cx: 0, cy: 0, fill: "#05e563", opacity: .25 }, pulse);
+    var ring = el("circle", { r: 7, fill: "none", stroke: "#05e563", "stroke-width": 1 }, pulse);
+    ring.style.animationDelay = "0.4s";
+    var tip = el("title", {});
+    tip.textContent = label;
+  }
+
+  function sevPill(s) {
+    var v = Math.max(1, Math.min(4, s));
+    return '<span class="sev-pill s' + v + '">S' + v + '</span>';
+  }
+  function timeAgo(iso) {
+    var ms = Date.now() - new Date(iso).getTime();
+    if (ms < 60 * 1000) return t(STR.justnow);
+    var m = Math.round(ms / 60000);
+    return m + " " + t(STR.minsAgo);
+  }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  function render(events, updatedUtc) {
+    svg.querySelectorAll("g[data-marker]").forEach(function (n) { n.parentNode.removeChild(n); });
+    feed.innerHTML = "";
+    var located = 0;
+    (events || []).forEach(function (e) {
+      if (e.lat != null && e.lon != null) { located++; addMarker(e); }
+      var row = document.createElement("div");
+      row.className = "feed-row";
+      row.innerHTML = sevPill(e.severity || 0) +
+        '<span class="src">' + esc(e.sourceIp || "—") + '</span>' +
+        '<span class="type">' + esc(e.type || "") + (e.place ? " · " + esc(e.place) : "") + '</span>' +
+        '<span class="when">' + timeAgo(e.utc) + '</span>';
+      feed.appendChild(row);
+    });
+    var el = document.getElementById("feedEmpty");
+    if ((events || []).length === 0) { feed.appendChild(el); }
+    document.getElementById("stEvents").innerHTML = "<b>" + (events || []).length + "</b> <span data-st='ev'>" + t(STR.events) + "</span>";
+    // normalise data-st after innerHTML rebuild
+    document.querySelectorAll("#stEvents [data-st]").forEach(function (n) { n.textContent = t(STR.events); });
+    document.getElementById("stCount").textContent = " " + (located + "/" + (events || []).length + " on map");
+  }
+
+  function poll() {
+    fetch(liveBase + "/api/live", { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        document.getElementById("stStatus").setAttribute("data-on", "1");
+        document.getElementById("stStatus").innerHTML = "<b data-st='offline'>" + t(STR.online) + "</b>";
+        offBanner.classList.remove("show");
+        render(d.events || [], d.updatedUtc);
+      })
+      .catch(function () {
+        document.getElementById("stStatus").removeAttribute("data-on");
+        document.getElementById("stStatus").innerHTML = "<b data-st='offline'>" + t(STR.offline) + "</b>";
+        offBanner.textContent = t(STR.bannerOn);
+        offBanner.classList.add("show");
+      });
+  }
+
+  drawBase();
+  setLang();
+  poll();
+  setInterval(poll, 30000);
+})();
+</script>
+<script defer data-domain="bulwark.co.ke" src="https://plausible.io/js/script.js"></script>
+</body>
+</html>

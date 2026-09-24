@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulwark Check &mdash; Check any IP or domain before you click</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Free, keyless danger checker. Paste any IP address or domain and see instantly whether it appears on the blocklists Bulwark keeps warm &mdash; firehol, DShield, Feodo, URLhaus and our own fleet consensus.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bulwark">
+<meta property="og:title" content="Bulwark Check &mdash; check any IP or domain">
+<meta property="og:description" content="Free, keyless danger checker backed by firehol, DShield, Feodo, URLhaus and Bulwark's own fleet consensus.">
+<meta property="og:url" content="https://bulwark.co.ke/check">
+<meta property="og:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bulwark Check &mdash; check any IP or domain">
+<meta name="twitter:description" content="Free, keyless danger checker backed by real blocklists and Bulwark's fleet consensus.">
+<meta name="twitter:image" content="https://bulwark.co.ke/assets/img/og-cover.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="assets/img/site.webmanifest">
+<link rel="preconnect" href="https://bulwark.co.ke">
+<link rel="dns-prefetch" href="https://bulwark.co.ke">
+<link rel="canonical" href="https://bulwark.co.ke/check">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Bulwark Check",
+  "url": "https://bulwark.co.ke/check",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KES" },
+  "description": "Free keyless danger checker for IP addresses and domains, backed by community blocklists and Bulwark's fleet consensus.",
+  "publisher": { "@type": "Organization", "name": "Bulwark Security", "url": "https://bulwark.co.ke/" }
+}
+</script>
+<style>
+  /* page-bespoke: checker (shared site styles in styles.css) */
+  .check-panel { max-width: 780px; margin: 0 auto; background: rgba(0,0,0,.5); border: 1px solid var(--stroke); padding: 30px; position: relative; }
+  .check-row { display: flex; gap: 10px; }
+  .check-row input { flex: 1; background: #000; border: 1px solid var(--stroke); color: var(--txt); padding: 14px 16px; font-family: var(--font-body); font-size: 1rem; }
+  .check-row input:focus { outline: none; border-color: var(--neon); }
+  .check-row button { cursor: pointer; }
+  .verdict { margin-top: 22px; border: 1px solid var(--stroke); background: #000; display: none; }
+  .verdict.show { display: block; }
+  .verdict .vhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; }
+  .verdict .vhead h3 { margin: 0; font-size: 1.15rem; letter-spacing: .02em; }
+  .verdict .vmeta { padding: 4px 22px 18px; color: var(--txt-faint); font-size: .84rem; font-family: var(--font-mono); }
+  .vtag { display: inline-block; font-family: var(--font-mono); font-weight: 800; letter-spacing: .12em; padding: 6px 16px; border: 1px solid currentColor; font-size: .8rem; }
+  .vtag.block { color: #ff5a5f; border-color: #ff5a5f; background: rgba(255,90,95,.08); }
+  .vtag.caution { color: var(--gold); border-color: var(--gold); background: rgba(255,215,0,.08); }
+  .vtag.clean { color: var(--neon); border-color: var(--neon); background: rgba(5,229,99,.08); }
+  .srclist { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 22px 20px; }
+  .srctag { font-family: var(--font-mono); font-size: .7rem; letter-spacing: .08em; border: 1px solid var(--stroke); padding: 4px 10px; color: var(--txt-dim); }
+  .srctag.fleet { border-color: var(--neon); color: var(--neon); }
+  .who-source { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; color: var(--txt-dim); font-size: .82rem; }
+  .who-source b { color: var(--txt); font-weight: 600; }
+  .err-msg { margin-top: 18px; padding: 14px 18px; border: 1px solid #ff5a5f; color: #ffb3b6; background: rgba(255,90,95,.06); display: none; font-size: .9rem; }
+  .note { margin-top: 14px; color: var(--txt-faint); font-size: .8rem; text-align: center; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+  .examples button { background: transparent; border: 1px solid var(--stroke); color: var(--txt-dim); font-family: var(--font-mono); font-size: .78rem; padding: 5px 12px; cursor: pointer; }
+  .examples button:hover { color: var(--neon); border-color: var(--neon); }
+  .lang-switch { display: inline-flex; border: 1px solid var(--stroke); }
+  .lang-switch button { background: transparent; color: var(--txt-dim); border: 0; padding: 8px 18px; cursor: pointer; font-family: var(--font-mono); font-size: .78rem; letter-spacing: .1em; }
+  .lang-switch button.on { background: var(--neon); color: #000; font-weight: 800; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.2); border-top-color: var(--neon); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width:560px){ .check-row { flex-direction: column; } .check-row button { width: 100%; } }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="logo" style="width:34px;height:34px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span><span class="brand-tag" style="display:none"></span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="reports.html">Reports</a>
+      <a href="check.html" class="active">Check</a>
+      <a href="map.html">Live map</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a class="btn btn-neon nav-cta" href="contact.html">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+      <span class="kicker">Free tool &middot; no API keys &middot; no login</span>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button id="langEn" class="on" type="button">EN</button>
+        <button id="langSw" type="button">SW</button>
+      </div>
+    </div>
+    <h1>Check an address<br><span class="neon">before you click it.</span></h1>
+    <p>Paste any IP address or domain &mdash; even a full suspicious link &mdash; and find out instantly whether it is on the blocklists Bulwark keeps warm every day. No accounts, no tracking of your query.</p>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <div class="check-panel">
+      <div class="check-row">
+        <input id="addrInput" type="text" autocomplete="off" spellcheck="false" placeholder="IP or domain &mdash; e.g. 45.155.205.233">
+        <button class="btn btn-neon" id="runCheck" type="button" data-go="Check">Check</button>
+      </div>
+      <p class="note" data-note>Paste an IP, a domain (with or without http://), or a full link &mdash; Bulwark extracts the host for you.</p>
+      <p class="note" id="exLabel" style="margin-bottom:0"></p>
+      <div class="examples" id="examples" aria-label="Try an example"></div>
+      <div class="err-msg" id="errMsg"></div>
+      <div class="verdict" id="verdict">
+        <div class="vhead">
+          <h3><span class="mono" id="vValue"></span></h3>
+          <span class="vtag" id="vTag">CLEAN</span>
+        </div>
+        <div class="srclist" id="vSources"></div>
+        <div class="vmeta" id="vMeta"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt section">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">What powers it</span><h2>Real lists, <span class="neon">not guesswork.</span></h2><p>Bulwark Check is backed by the same no-key intelligence engine inside every Bulwark agent &mdash; four community blocklists refreshed automatically, plus sightings shared agreed by the fleet itself.</p></div>
+    <div class="grid grid-3">
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="web" style="width:24px;height:24px"></span></div><h3>Firehol Level 1</h3><p>Terrorism- and attack-related netsets aggregated from dozens of partners &mdash; on by default, zero configuration.</p></div>
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="eye" style="width:24px;height:24px"></span></div><h3>DShield + Feodo</h3><p>The SANS Internet Storm Center's top attackers and Abuse.ch's known C&amp;C addresses, refreshed on a live schedule.</p></div>
+      <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="radar" style="width:24px;height:24px"></span></div><h3>Fleet consensus</h3><p>When three or more Bulwark-protected machines independently flag the same address, it is automatically promoted into the list.</p></div>
+    </div>
+    <div class="callout blue"><p><b style="color:var(--txt)">Why "no third-party APIs".</b> Your query never touches a paid reputation service, never expires, and never runs out of quota. The lists are free, community-owned, and copied into our engine &mdash; which is exactly why this tool can stay free forever.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <h2>Get this engine <span class="neon">automatically</span> on every machine.</h2>
+    <p>Bulwark checks every address your endpoints touch &mdash; and blocks the bad ones before they reach you.</p>
+    <div class="cta-actions">
+      <a class="btn btn-neon btn-lg" href="contact.html">Talk to us <span class="g" data-icon="whatsapp" style="width:18px;height:18px"></span></a>
+      <a class="btn btn-ghost btn-lg" href="map.html">See it live</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><span class="logo" style="width:30px;height:30px;background:var(--neon);color:#000;display:grid;place-items:center;font-weight:950;font-family:var(--font-wide)">B</span><span class="word" data-text="BULWARK"></span></a><p style="margin-top:14px">Deceptive &amp; agentic endpoint security, engineered in Nyeri County, Kenya.</p></div>
+      <div><h4>Product</h4><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="check.html">Free link check</a><a href="map.html">Live threat map</a></div>
+      <div><h4>Support</h4><a href="contact.html">Contact</a><a href="about.html">Why Bulwark</a></div>
+      <div><h4>Legal</h4><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Use</a><a href="dpa.html">Data Processing</a></div>
+      <div><h4>Contact</h4><a href="https://wa.me/254796874539" target="_blank"><span class="g" data-icon="whatsapp"></span> WhatsApp +254 796 874 539</a><a href="tel:+254796874539"><span class="g" data-icon="phone"></span> +254 796 874 539</a><a href="sms:+254796874539"><span class="g" data-icon="message"></span> SMS +254 796 874 539</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Bulwark Security. Nyeri County, Kenya. All rights reserved.</span><span class="payment">bulwark &gt;_ stay safe out there</span></div>
+  </div>
+</footer>
+
+<a class="float-wa" href="https://wa.me/254796874539" target="_blank" aria-label="Chat on WhatsApp"><span class="g" data-icon="whatsapp" style="width:26px;height:26px"></span></a>
+
+<!-- ANIMATED LIVE TERMINAL -->
+<div class="term" id="term" aria-label="Live Bulwark shell demo">
+  <div class="term-bar">
+    <span class="term-dot red"></span><span class="term-dot amber"></span><span class="term-dot green"></span>
+    <span class="term-title">bulwark — command centre</span>
+    <span class="term-live"><span class="live-dot"></span> LIVE</span>
+    <span class="term-actions">
+      <button class="term-act" id="termMin" title="Minimise" aria-label="Minimise terminal">–</button>
+      <button class="term-act" id="termClose" title="Close" aria-label="Close terminal">&times;</button>
+    </span>
+  </div>
+  <div class="term-body" id="termBody">
+    <pre class="term-out" id="termOut"></pre>
+    <div class="term-line">
+      <span class="term-prompt">bulwark&nbsp;&gt;</span>
+      <span class="term-input" id="termInput"></span>
+      <span class="term-cursor"></span>
+    </div>
+  </div>
+</div>
+<button class="term-tab" id="termTab" aria-label="Reopen live terminal"><span class="live-dot dark"></span> Live shell</button>
+
+<script>
+/* -----------------------------------------------------------------
+   Point Bulwark Check at your ThreatIntel service (see
+   FREE-TOOLS-DEPLOY.md in the SENTINEL repo). Anonymous reads are
+   rate-limited but need no key. Default target:
+   https://intel.bulwark.co.ke  (free Cloudflare Tunnel)
+----------------------------------------------------------------- */
+window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
+</script>
+<script defer src="assets/js/main.js" data-cfasync="false"></script>
+<script defer>
+(function () {
+  "use strict";
+  var LANG = { en: 1, sw: 0 };
+  var STR = {
+    checkGo:    { en: "Check", sw: "Angalia" },
+    note:       { en: "Paste an IP, a domain (with or without http://), or a full link — Bulwark extracts the host for you.", sw: "Bandika IP, mwenyeji (domain) na hata bila http://), au kiungo kizima — Bulwark itachukua mwenyeji pekee." },
+    checking:   { en: "Checking…", sw: "Inaangalia…" },
+    blocked:    { en: "BLOCK", sw: "HATARI" },
+    caution:    { en: "CAUTION", sw: "TAHADHARI" },
+    clean:      { en: "CLEAN", sw: "SALAMA" },
+    onLists:    { en: "found on the live lists Bulwark keeps warm", sw: "imepatikana kwenye orodha za moja kwa moja za Bulwark" },
+    noLists:    { en: "not currently on any Bulwark blocklist", sw: "haipo kwenye orodha yoyote ya Bulwark kwa sasa" },
+    consensus:  { en: "strictly fleet consensus — three or more protected machines agree", sw: "makubaliano ya fleet — mashine tatu au zaidi zilindwa zinakubaliana" },
+    checked:    { en: "checked", sw: "imeangaliwa" },
+    tri:        { en: "Try:", sw: "Jaribu:" },
+    invalid:    { en: "That doesn\u2019t look like an IP address or a domain.", sw: "Hilo halionekani kama IP au mwenyeji (domain)." },
+    offline:    { en: "Checker is offline right now — the intel service is not reachable. Please try again shortly.", sw: "Cheki haipo mtandaoni sasa — huduma haifikiki. Jaribu tena baadaye kidogo." },
+    rate:       { en: "Slow down — this free tier allows a limited number of checks per minute. Try again in a moment.", sw: "Polepole — upi wa bure unaruhusu idadi fulani ya angalizi kwa dakika. Jaribu tena baadaye." },
+    sourcesHead:{ en: "Sources", sw: "Vyanzo" }
+  };
+  var intelBase = window.BULWARK_INTEL || "http://127.0.0.1:5599";
+  var $ = function (id) { return document.getElementById(id); };
+  var input = $("addrInput"), btn = $("runCheck"), verdict = $("verdict"),
+      vTag = $("vTag"), vValue = $("vValue"), vSources = $("vSources"),
+      vMeta = $("vMeta"), err = $("errMsg");
+
+  function t(o) { return o[LANG.en ? "en" : "sw"]; }
+  function setLang() {
+    $("langEn").classList.toggle("on", LANG.en === 1);
+    $("langSw").classList.toggle("on", LANG.en === 0);
+    btn.textContent = t(STR.checkGo);
+    $("exLabel").textContent = t(STR.tri);
+    [].forEach.call(document.querySelectorAll("[data-note]"), function (el) { el.textContent = t(STR.note); });
+  }
+  $("langEn").addEventListener("click", function () { LANG.en = 1; setLang(); });
+  $("langSw").addEventListener("click", function () { LANG.en = 0; setLang(); });
+
+  function normalize(raw) {
+    var s = (raw || "").trim();
+    if (!s) return "";
+    s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+    s = s.split(/[/?#]/)[0];
+    s = s.replace(/^www\./i, "");
+    return s.toLowerCase();
+  }
+  function looksValid(s) {
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(s)) {
+      var ok = s.split(".").every(function (o) { var n = +o; return n >= 0 && n <= 255; });
+      return ok ? "ip" : false;
+    }
+    if (/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(s)) return "domain";
+    return false;
+  }
+
+  var EXAMPLES = ["8.8.8.8", "185.100.11.22", "evil.example.com", "https://docs.google.com"];
+  function buildExamples() {
+    var box = $("examples");
+    EXAMPLES.forEach(function (v) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = v;
+      b.addEventListener("click", function () { input.value = v; run(); });
+      box.appendChild(b);
+    });
+  }
+
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  function showVerdict(kind, value, sources, verdict, whenUtc) {
+    verdict.classList.add("show");
+    vValue.textContent = value;
+    var cls = verdict === "BLOCK" ? "block" : verdict === "CAUTION" ? "caution" : "clean";
+    var label = verdict === "BLOCK" ? t(STR.blocked) : verdict === "CAUTION" ? t(STR.caution) : t(STR.clean);
+    vTag.className = "vtag " + cls;
+    vTag.textContent = label;
+    vSources.innerHTML = "";
+    (sources || []).forEach(function (src) {
+      var span = document.createElement("span");
+      span.className = "srctag" + (src === "fleet-consensus" ? " fleet" : "");
+      span.textContent = src;
+      vSources.appendChild(span);
+    });
+    var gist = verdict === "BLOCK" || verdict === "CAUTION" ? t(STR.onLists) : t(STR.noLists);
+    vMeta.textContent = gist + " · " + t(STR.checked) + " " + new Date(whenUtc).toLocaleString();
+  }
+
+  function showErr(msg) { err.textContent = msg; err.style.display = "block"; }
+
+  function run() {
+    err.style.display = "none";
+    var raw = normalize(input.value);
+    if (!raw) { return; }
+    var kind = looksValid(raw);
+    if (!kind) { showErr(t(STR.invalid)); return; }
+    btn.textContent = t(STR.checking);
+    btn.disabled = true;
+    verdict.classList.remove("show");
+
+    fetch(intelBase + "/intel/check/" + encodeURIComponent(raw), {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    }).then(function (r) {
+      if (r.status === 429) throw new Error("rate");
+      if (r.status === 400) throw new Error("bad");
+      if (!r.ok) throw new Error("off");
+      return r.json();
+    }).then(function (d) {
+      showVerdict(kind, d.value || raw, d.sources || [], d.verdict || "CLEAN", d.checkedUtc);
+    }).catch(function (e) {
+      if ((e && e.message) === "rate") showErr(t(STR.rate));
+      else if ((e && e.message) === "bad") showErr(t(STR.invalid));
+      else showErr(t(STR.offline));
+    }).then(function () {
+      btn.textContent = t(STR.checkGo);
+      btn.disabled = false;
+    });
+  }
+
+  btn.addEventListener("click", run);
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") run(); });
+  buildExamples();
+  setLang();
+})();
+</script>
+<script defer data-domain="bulwark.co.ke" src="https://plausible.io/js/script.js"></script>
+</body>
+</html>
