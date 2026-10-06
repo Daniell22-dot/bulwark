@@ -51,18 +51,19 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     return points.map(function (p) { return px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1); }).join(" ");
   }
   var KENYA = [
-    [34.60,4.95],[35.85,4.85],[36.9,4.7],[38.0,4.55],[39.0,4.4],[40.0,4.1],
-    [40.95,3.95],[41.02,3.5],[41.2,2.7],[41.25,1.6],[41.1,0.6],[40.9,-0.2],
-    [40.75,-0.9],[40.45,-1.55],[39.9,-1.9],[39.55,-1.75],[39.6,-2.4],[39.3,-2.75],
-    [39.1,-3.5],[38.9,-4.05],[38.55,-4.55],[37.9,-4.7],[37.1,-4.3],[36.7,-3.6],
-    [36.4,-2.9],[36.25,-2.3],[36.6,-1.8],[36.5,-1.35],[35.6,-1.3],[34.9,-1.35],
-    [34.45,-1.6],[34.15,-1.5],[33.92,-1.2],[33.95,-0.6],[34.1,-0.2],[34.0,0.3],
-    [34.15,0.8],[34.5,1.15],[34.75,1.6],[34.55,2.1],[34.6,2.8],[34.55,3.3],
-    [34.9,3.7],[35.15,4.2],[34.8,4.6],[34.6,4.95]
+    [34.00,4.00],[34.30,4.40],[34.80,4.50],[35.30,4.50],[35.80,4.50],[36.30,4.50],
+    [36.80,4.50],[37.30,4.50],[37.80,4.30],[38.30,3.90],[38.80,3.50],[39.30,3.00],
+    [39.80,2.50],[40.30,2.00],[40.80,1.50],[41.20,1.00],[41.20,0.50],[41.00,0.00],
+    [40.50,-0.50],[40.00,-1.00],[39.50,-1.50],[39.50,-2.00],[39.50,-2.50],
+    [39.50,-3.00],[39.00,-3.50],[38.50,-4.00],[38.00,-4.50],[37.50,-4.50],
+    [37.00,-4.50],[36.50,-4.50],[36.00,-4.00],[35.50,-3.50],[35.00,-3.00],
+    [34.50,-2.50],[34.00,-1.50],[34.00,-1.00],[33.95,-0.50],[34.00,0.00],
+    [34.00,0.50],[34.00,1.00],[34.00,2.00],[34.00,3.00],[34.00,4.00]
   ];
   var LAKE = [
-    [34.75,-0.45],[34.15,-0.4],[33.9,-0.5],[33.92,-0.9],[34.05,-1.25],
-    [34.35,-1.6],[34.6,-1.7],[34.75,-1.35],[34.7,-0.95],[34.75,-0.45]
+    [34.20,-0.10],[33.95,0.10],[33.85,0.00],[33.88,-0.20],[34.00,-0.40],
+    [34.15,-0.50],[34.35,-0.50],[34.50,-0.35],[34.50,-0.10],[34.35,0.05],
+    [34.20,-0.10]
   ];
   var CITIES = [
     ["Nairobi", -1.286, 36.817], ["Mombasa", -4.04, 39.66], ["Kisumu", -0.09, 34.75],
@@ -174,6 +175,38 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
       var lb = c[0];
       if (c[0] === "Mombasa" || c[0] === "Kisumu" || c[0] === "Eldoret") lb = c[0].slice(0, 3) + ".";
       el("text", { x: (px(c[2]) + 5).toFixed(1), y: (py(c[1]) + 3).toFixed(1), "class": "citylabel" }).textContent = lb;
+    });
+  }
+
+  /* load GeoJSON county basemap */
+  var geojsonCache = null;
+  function drawGeoJSONBasemap() {
+    if (geojsonCache) { renderGeoJSON(geojsonCache); return; }
+    fetch("data/kenya_counties.geojson", { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("geojson-fail"); return r.json(); })
+      .then(function (data) { geojsonCache = data; renderGeoJSON(data); })
+      .catch(function () {});
+  }
+  function renderGeoJSON(data) {
+    var g = el("g", { "data-layer": "basemap" }, svg);
+    (data.features || []).forEach(function (feature) {
+      var geom = feature.geometry;
+      if (!geom || !geom.coordinates) return;
+      var polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+      polys.forEach(function (rings) {
+        var d = "";
+        rings.forEach(function (ring) {
+          ring.forEach(function (coord, i) {
+            var x = px(coord[0]).toFixed(1);
+            var y = py(coord[1]).toFixed(1);
+            d += (i === 0 ? "M" : "L") + x + "," + y;
+          });
+          d += "Z ";
+        });
+        var path = el("path", { d: d.trim(), "class": "county-baseline" }, g);
+        var name = feature.properties && feature.properties.name ? feature.properties.name : "";
+        if (name && path) path.setAttribute("data-county", name);
+      });
     });
   }
 
@@ -332,6 +365,7 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   }
 
   drawBase();
+  drawGeoJSONBasemap();
   drawGrid();
   drawCounties();
   loadOSINT().then(function (d) { drawOSINT(d.grid); });
