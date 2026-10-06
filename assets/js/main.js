@@ -53,6 +53,20 @@
   }
   injectIcons(document);
 
+  function esc(s) {
+    if (s == null) return "";
+    return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function escAttr(s) {
+    if (s == null) return "";
+    return esc(s).replace(/'/g, "&#39;");
+  }
+  var SEV_CLASSES = new Set(["critical", "high", "medium", "low", "info", ""]);
+  function sevClass(raw) {
+    var v = (raw || "").toString().toLowerCase().trim();
+    return SEV_CLASSES.has(v) ? v : "";
+  }
+
   /* mobile nav */
   var toggle = document.getElementById("navToggle");
   var links = document.getElementById("navLinks");
@@ -501,7 +515,11 @@
             sslbl_abuse: { sev: 'High', desc: 'SSLBL malicious SSL certificates' },
             urlhaus_payloads: { sev: 'Critical', desc: 'URLhaus malware payload URLs' }
           }[feed] || { sev: '—', desc: feed };
-          return `<tr><td>${feed}</td><td>${count.toLocaleString()}</td><td><span class="sev-${cfg.sev.toLowerCase()}">${cfg.sev}</span></td><td>${cfg.desc}</td></tr>`;
+          const safeFeed = esc(feed);
+          const safeDesc = esc(cfg.desc);
+          const safeSev = esc(cfg.sev);
+          const safeSevClass = sevClass(cfg.sev);
+          return `<tr><td>${safeFeed}</td><td>${count.toLocaleString()}</td><td><span class="sev-${safeSevClass}">${safeSev}</span></td><td>${safeDesc}</td></tr>`;
         }).join('');
       }
 
@@ -513,7 +531,12 @@
           .slice(0, 50);
         topTable.innerHTML = threats.map(([ip, t]) => {
           const fleet = t.fleet_agents ? t.fleet_agents.join(', ') : '—';
-          return `<tr><td class="mono">${ip}</td><td>${t.feeds?.join(', ') || '—'}</td><td><span class="sev-${(t.max_severity||'').toLowerCase()}">${t.max_severity||'—'}</span></td><td>${t.consensus_score}</td><td class="mono">${fleet}</td></tr>`;
+          const safeIp = esc(ip);
+          const safeFeeds = esc(t.feeds?.join(', ') || '—');
+          const safeFleet = esc(fleet);
+          const safeSev = esc(t.max_severity || '—');
+          const safeSevClass = sevClass(t.max_severity);
+          return `<tr><td class="mono">${safeIp}</td><td>${safeFeeds}</td><td><span class="sev-${safeSevClass}">${safeSev}</span></td><td>${t.consensus_score}</td><td class="mono">${safeFleet}</td></tr>`;
         }).join('');
       }
 
@@ -549,10 +572,11 @@
           const tech = r.technologies?.join(', ') || '—';
           const findings = r.findings?.length || 0;
           const sevCounts = (r.findings || []).reduce((a, f) => { a[f.severity] = (a[f.severity] || 0) + 1; return a; }, {});
-          const sevBadge = Object.entries(sevCounts).map(([s, c]) => 
-            `<span class="sev-${s.toLowerCase()}">${s.toUpperCase()}: ${c}</span>`
-          ).join(' ') || '—';
-          return `<tr><td class="mono">${r.url}</td><td>${r.status || r.error || '—'}</td><td>${tech}</td><td>${r.response_time_ms || '—'}</td><td>${sevBadge}</td><td>${r.scanned_at ? new Date(r.scanned_at).toLocaleString() : '—'}</td></tr>`;
+          const sevBadge = Object.entries(sevCounts).map(([s, c]) => {
+            const safeSevClass = sevClass(s);
+            return `<span class="sev-${safeSevClass}">${esc(s.toUpperCase())}: ${c}</span>`;
+          }).join(' ') || '—';
+          return `<tr><td class="mono">${esc(r.url)}</td><td>${esc(r.status || r.error || '—')}</td><td>${esc(tech)}</td><td>${esc(r.response_time_ms || '—')}</td><td>${sevBadge}</td><td>${esc(r.scanned_at ? new Date(r.scanned_at).toLocaleString() : '—')}</td></tr>`;
         }).join('');
       }
 
@@ -561,14 +585,23 @@
       if (details) {
         details.innerHTML = results.map(r => {
           const findings = r.findings || [];
-          if (!findings.length) return `<h4>${r.url}</h4><p class="dim">No findings</p>`;
+          if (!findings.length) return `<h4>${esc(r.url)}</h4><p class="dim">No findings</p>`;
+          const safeUrl = esc(r.url);
+          const safeStatus = esc(r.status || r.error || '');
           return `
-            <h4>${r.url} <span class="dim">(${r.status || r.error})</span></h4>
+            <h4>${safeUrl} <span class="dim">(${safeStatus})</span></h4>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>Evidence</th></tr></thead>
                 <tbody>
-                  ${findings.map(f => `<tr><td><span class="sev-${(f.severity||'').toLowerCase()}">${(f.severity||'').toUpperCase()}</span></td><td class="mono">${f.type||'—'}</td><td>${f.description||'—'}</td><td class="mono">${f.evidence||'—'}</td></tr>`).join('')}
+                  ${findings.map(f => {
+                    const safeSevClass = sevClass(f.severity);
+                    const safeType = esc(f.type || '—');
+                    const safeDesc = esc(f.description || '—');
+                    const safeEvidence = esc(f.evidence || '—');
+                    const safeSev = esc((f.severity || '').toUpperCase());
+                    return `<tr><td><span class="sev-${safeSevClass}">${safeSev}</span></td><td class="mono">${safeType}</td><td>${safeDesc}</td><td class="mono">${safeEvidence}</td></tr>`;
+                  }).join('')}
                 </tbody>
               </table>
             </div>
