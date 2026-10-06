@@ -60,11 +60,6 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     [34.50,-2.50],[34.00,-1.50],[34.00,-1.00],[33.95,-0.50],[34.00,0.00],
     [34.00,0.50],[34.00,1.00],[34.00,2.00],[34.00,3.00],[34.00,4.00]
   ];
-  var LAKE = [
-    [34.20,-0.10],[33.95,0.10],[33.85,0.00],[33.88,-0.20],[34.00,-0.40],
-    [34.15,-0.50],[34.35,-0.50],[34.50,-0.35],[34.50,-0.10],[34.35,0.05],
-    [34.20,-0.10]
-  ];
   var CITIES = [
     ["Nairobi", -1.286, 36.817], ["Mombasa", -4.04, 39.66], ["Kisumu", -0.09, 34.75],
     ["Eldoret", 0.51, 35.27], ["Nyeri", -0.42, 36.95], ["Garissa", -0.46, 39.65],
@@ -169,7 +164,6 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
 
   function drawBase() {
     el("polygon", { points: poly(KENYA), "class": "land" });
-    el("polygon", { points: poly(LAKE), "class": "lake" });
     CITIES.forEach(function (c) {
       el("circle", { cx: px(c[2]).toFixed(1), cy: py(c[1]).toFixed(1), r: 2, "class": "city" });
       var lb = c[0];
