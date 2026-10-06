@@ -496,10 +496,14 @@
       if (!data) return;
 
       const stats = data.stats || {};
-      document.getElementById('tiTotal')?.textContent = (data.total_ips || stats.total_threat_feeds || 0).toLocaleString();
-      document.getElementById('tiCorrelated')?.textContent = (stats.fleet_correlated || 0).toLocaleString();
-      document.getElementById('tiEmerging')?.textContent = (stats.fleet_only_emerging || 0).toLocaleString();
-      document.getElementById('tiAgents')?.textContent = (stats.agents_reporting || 0).toLocaleString();
+      const tiTotal = document.getElementById('tiTotal');
+      const tiCorrelated = document.getElementById('tiCorrelated');
+      const tiEmerging = document.getElementById('tiEmerging');
+      const tiAgents = document.getElementById('tiAgents');
+      if (tiTotal) tiTotal.textContent = (data.total_ips || stats.total_threat_feeds || 0).toLocaleString();
+      if (tiCorrelated) tiCorrelated.textContent = (stats.fleet_correlated || 0).toLocaleString();
+      if (tiEmerging) tiEmerging.textContent = (stats.fleet_only_emerging || 0).toLocaleString();
+      if (tiAgents) tiAgents.textContent = (stats.agents_reporting || 0).toLocaleString();
 
       // Feed table
       const feedTable = document.getElementById('tiFeedTable');
@@ -559,11 +563,14 @@
       if (!resp.ok) return;
       const data = await resp.json();
       
-      const bySev = data.by_severity || {};
-      document.getElementById('ghaTargets')?.textContent = data.targets?.length || 0;
-      document.getElementById('ghaCritical')?.textContent = bySev.critical || 0;
-      document.getElementById('ghaHigh')?.textContent = bySev.high || 0;
-      document.getElementById('ghaMedium')?.textContent = bySev.medium || 0;
+      const ghaTargets = document.getElementById('ghaTargets');
+      const ghaCritical = document.getElementById('ghaCritical');
+      const ghaHigh = document.getElementById('ghaHigh');
+      const ghaMedium = document.getElementById('ghaMedium');
+      if (ghaTargets) ghaTargets.textContent = data.targets?.length || 0;
+      if (ghaCritical) ghaCritical.textContent = bySev.critical || 0;
+      if (ghaHigh) ghaHigh.textContent = bySev.high || 0;
+      if (ghaMedium) ghaMedium.textContent = bySev.medium || 0;
 
       const results = data.results || [];
       const tbody = document.getElementById('ghaResults');
