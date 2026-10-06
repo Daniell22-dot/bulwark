@@ -3,7 +3,12 @@ name: Scheduled Scans
 on:
   schedule:
     - cron: '0 2 * * *'   # daily at 02:00 UTC
-  workflow_dispatch:      # manual trigger
+  workflow_dispatch:
+    inputs:
+      deep_scan:
+        description: 'Enable Playwright deep scan (JS rendering, DOM XSS, mixed content)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -13,10 +18,16 @@ jobs:
   web-scan:
     name: Web Vulnerability Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      WEB_SCAN_TARGETS: ${{ secrets.WEB_SCAN_TARGETS }}
+      USE_PLAYWRIGHT: true
+      DEEP_SCAN: ${{ github.event.inputs.deep_scan || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,39 +36,38 @@ jobs:
       
       - name: Install scanner deps
         run: |
-          pip install httpx beautifulsoup4 lxml
+          pip install httpx beautifulsoup4 lxml playwright
       
-      - name: Run web scan
-        env:
-          TARGETS: ${{ secrets.WEB_SCAN_TARGETS }}
+      - name: Install Playwright browsers
+        run: playwright install chromium
+      
+      - name: Run web vulnerability scan
         run: |
-          python -c "
-import os, json, httpx, asyncio
-targets = os.getenv('TARGETS', '').split(',')
-async def scan(url):
-    async with httpx.AsyncClient(timeout=10) as client:
-        try:
-            r = await client.get(url)
-            return {'url': url, 'status': r.status_code, 'headers': dict(r.headers)}
-        except Exception as e:
-            return {'url': url, 'error': str(e)}
-        results = asyncio.run(asyncio.gather(*[scan(t.strip()) for t in targets if t.strip()]))
-        print(json.dumps(results))
-          "
+          python backend/web_scanner.py
       
       - name: Commit scan results
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/scans.json || true
-          git commit -m "chore: scheduled web scan $(date -u +%Y-%m-%d)" || echo "no changes"
+          git add data/web_scan_latest.json || true
+          git commit -m "chore: scheduled web scan $(date -u +%Y-%m-%d)" || echo "no changes to commit"
           git push
+      
+      - name: Upload scan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-scan-results
+          path: data/web_scan_latest.json
+          retention-days: 30
 
   repo-scan:
     name: Repository Secret Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Run secret scan
         uses: trufflesecurity/trufflehog@main
         with:
@@ -70,3 +80,4 @@ async def scan(url):
         with:
           name: trufflehog-results
           path: trufflehog-results.json
+          retention-days: 30

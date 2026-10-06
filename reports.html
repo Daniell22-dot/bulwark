@@ -104,10 +104,35 @@
           <tr><td><span class="sev INFO">INFO</span></td><td>HTTPS enforced</td><td>HTTP requests redirect correctly to HTTPS.</td></tr>
           <tr><td><span class="sev INFO">INFO</span></td><td>TLS certificate valid</td><td>Certificate chain valid, issued by Let's Encrypt, not expiring within 30 days.</td></tr>
           <tr><td><span class="sev INFO">INFO</span></td><td>JavaScript-handled login form</td><td>Form posts via script rather than plain HTML submit; no plaintext credential probe attempted.</td></tr>
-        </tbody>
+</tbody>
+        </table>
+      </div>
+      <div class="callout blue"><p><b style="color:var(--txt)">Evidence on disk.</b> Every scan writes two artifacts to <span class="mono neon">%ProgramData%\Sentinel\webreports\</span>: a <span class="mono">.json</span> full evidence file (each check, request/response summary) and a standalone <span class="mono">.html</span> report openable in any browser. The numbers above are verifiable, not trusted.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- AUTOMATED DAILY WEB SCAN (GitHub Actions) -->
+<section class="section" id="ghaWebScan">
+  <div class="container">
+    <div class="sec-head"><span class="kicker">Automated daily scan</span><h2>Scheduled web vulnerability scans via GitHub Actions</h2><p>Runs daily at 02:00 UTC against configured targets. Checks security headers, TLS, sensitive paths, cookie flags, technology fingerprinting, and basic XSS/SQLi probes. No external services — pure GitHub Actions runner.</p></div>
+    <div class="callout" id="ghaScanStatus" style="text-align:center; font-family:var(--font-mono); font-size:.8rem"></div>
+    <div class="grid grid-4" style="margin-top:24px" id="ghaStats">
+      <div class="card"><div class="ico"><span class="g" data-icon="radar"></span></div><h3>Targets</h3><div class="stat" id="ghaTargets">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="bolt"></span></div><h3>Critical</h3><div class="stat" id="ghaCritical" style="color:#ff5a5f">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="chart"></span></div><h3>High</h3><div class="stat" id="ghaHigh" style="color:#ff9f1a">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="shield"></span></div><h3>Medium</h3><div class="stat" id="ghaMedium" style="color:#ffd700">—</div></div>
+    </div>
+    <div class="table-wrap" style="margin-top:24px; max-height:400px; overflow:auto">
+      <table>
+        <thead><tr><th>Target</th><th>Status</th><th>Tech Stack</th><th>Response (ms)</th><th>Findings</th><th>Scan Time (UTC)</th></tr></thead>
+        <tbody id="ghaResults"></tbody>
       </table>
     </div>
-    <div class="callout blue"><p><b style="color:var(--txt)">Evidence on disk.</b> Every scan writes two artifacts to <span class="mono neon">%ProgramData%\Sentinel\webreports\</span>: a <span class="mono">.json</span> full evidence file (each check, request/response summary) and a standalone <span class="mono">.html</span> report openable in any browser. The numbers above are verifiable, not trusted.</p></div>
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer; color:var(--neon); font-family:var(--font-mono); font-size:.85rem">View detailed findings per target</summary>
+      <div id="ghaDetails" style="margin-top:12px"></div>
+    </details>
   </div>
 </section>
 

@@ -528,12 +528,73 @@
     }
   }
 
+  /* ===== GITHUB ACTIONS WEB SCAN ===== */
+  async function loadGHAWebScan() {
+    if (!document.getElementById('ghaResults')) return;
+    try {
+      const resp = await fetch('data/web_scan_latest.json', { cache: 'no-store' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      
+      const bySev = data.by_severity || {};
+      document.getElementById('ghaTargets')?.textContent = data.targets?.length || 0;
+      document.getElementById('ghaCritical')?.textContent = bySev.critical || 0;
+      document.getElementById('ghaHigh')?.textContent = bySev.high || 0;
+      document.getElementById('ghaMedium')?.textContent = bySev.medium || 0;
+
+      const results = data.results || [];
+      const tbody = document.getElementById('ghaResults');
+      if (tbody) {
+        tbody.innerHTML = results.map(r => {
+          const tech = r.technologies?.join(', ') || '—';
+          const findings = r.findings?.length || 0;
+          const sevCounts = (r.findings || []).reduce((a, f) => { a[f.severity] = (a[f.severity] || 0) + 1; return a; }, {});
+          const sevBadge = Object.entries(sevCounts).map(([s, c]) => 
+            `<span class="sev-${s.toLowerCase()}">${s.toUpperCase()}: ${c}</span>`
+          ).join(' ') || '—';
+          return `<tr><td class="mono">${r.url}</td><td>${r.status || r.error || '—'}</td><td>${tech}</td><td>${r.response_time_ms || '—'}</td><td>${sevBadge}</td><td>${r.scanned_at ? new Date(r.scanned_at).toLocaleString() : '—'}</td></tr>`;
+        }).join('');
+      }
+
+      // Detailed findings
+      const details = document.getElementById('ghaDetails');
+      if (details) {
+        details.innerHTML = results.map(r => {
+          const findings = r.findings || [];
+          if (!findings.length) return `<h4>${r.url}</h4><p class="dim">No findings</p>`;
+          return `
+            <h4>${r.url} <span class="dim">(${r.status || r.error})</span></h4>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>Evidence</th></tr></thead>
+                <tbody>
+                  ${findings.map(f => `<tr><td><span class="sev-${(f.severity||'').toLowerCase()}">${(f.severity||'').toUpperCase()}</span></td><td class="mono">${f.type||'—'}</td><td>${f.description||'—'}</td><td class="mono">${f.evidence||'—'}</td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const statusEl = document.getElementById('ghaScanStatus');
+      if (statusEl) {
+        const age = data.scanned_at ? 'Last scan: ' + new Date(data.scanned_at).toLocaleString() : 'No data';
+        statusEl.textContent = `${age} · ${results.length} targets · ${data.total_findings || 0} total findings · Source: GitHub Actions daily`;
+      }
+    } catch (e) {
+      console.warn('GHA web scan load failed:', e);
+    }
+  }
+
   // Load on page ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadThreatIntel);
+    document.addEventListener('DOMContentLoaded', loadGHAWebScan);
   } else {
     loadThreatIntel();
+    loadGHAWebScan();
   }
   // Auto-refresh every 5 minutes
   setInterval(loadThreatIntel, 5 * 60 * 1000);
+  setInterval(loadGHAWebScan, 5 * 60 * 1000);
 })();

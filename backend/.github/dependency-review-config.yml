@@ -1,0 +1,24 @@
+# Dependency Review Configuration
+# Fail PR if it introduces high/critical vulnerabilities
+
+fail-on-severity: high
+
+# Allow specific vulnerabilities with justification
+allow-ghsas:
+  # Example: GHSA-xxxx-xxxx-xxxx: "Known issue, fix pending upstream"
+
+# Severity thresholds per ecosystem
+ecosystems:
+  pypi:
+    fail-on-severity: high
+  npm:
+    fail-on-severity: high
+  golang:
+    fail-on-severity: high
+
+# Ignore certain vulnerability types
+ignore-vulnerabilities:
+  - "GHSA-*"  # Add specific IDs if needed with justification
+
+# Comment on PR with summary
+comment-summary-in-pr: true

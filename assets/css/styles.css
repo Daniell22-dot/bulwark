@@ -441,3 +441,12 @@ details[open] summary { color: var(--neon); }
 @media (prefers-reduced-motion: reduce) {
   .term-cursor { animation: none; opacity: 1; }
 }
+
+/* ===== GHA WEB SCAN SECTION ===== */
+#ghaWebScan { padding-top: 40px; }
+#ghaStats .stat { font-size: 2rem; font-weight: 800; font-family: var(--font-mono); margin-top: 8px; }
+#ghaResults td, #ghaDetails td { font-family: var(--font-mono); font-size: 0.75rem; padding: 6px 8px; vertical-align: top; }
+#ghaResults th, #ghaDetails th { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--txt-faint); padding: 8px; border-bottom: 1px solid var(--stroke); }
+#ghaResults tr:hover { background: var(--panel-soft); }
+#ghaDetails h4 { margin: 16px 0 8px; color: var(--neon); font-size: 0.9rem; }
+#ghaDetails .table-wrap { margin-bottom: 16px; }
