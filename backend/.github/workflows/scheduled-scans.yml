@@ -1,0 +1,72 @@
+name: Scheduled Scans
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # daily at 02:00 UTC
+  workflow_dispatch:      # manual trigger
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  web-scan:
+    name: Web Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install scanner deps
+        run: |
+          pip install httpx beautifulsoup4 lxml
+      
+      - name: Run web scan
+        env:
+          TARGETS: ${{ secrets.WEB_SCAN_TARGETS }}
+        run: |
+          python -c "
+import os, json, httpx, asyncio
+targets = os.getenv('TARGETS', '').split(',')
+async def scan(url):
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            r = await client.get(url)
+            return {'url': url, 'status': r.status_code, 'headers': dict(r.headers)}
+        except Exception as e:
+            return {'url': url, 'error': str(e)}
+        results = asyncio.run(asyncio.gather(*[scan(t.strip()) for t in targets if t.strip()]))
+        print(json.dumps(results))
+          "
+      
+      - name: Commit scan results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/scans.json || true
+          git commit -m "chore: scheduled web scan $(date -u +%Y-%m-%d)" || echo "no changes"
+          git push
+
+  repo-scan:
+    name: Repository Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          format: json
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trufflehog-results
+          path: trufflehog-results.json

@@ -1,0 +1,75 @@
+name: Alert Check
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 minutes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Check for critical alerts
+        run: |
+          python -c "
+import json, os, sys
+from datetime import datetime, timezone, timedelta
+
+# Load latest telemetry
+try:
+    with open('data/telemetry.json') as f:
+        data = json.load(f)
+except:
+    sys.exit(0)
+
+now = datetime.now(timezone.utc)
+window = timedelta(minutes=20)
+critical_count = 0
+alerts = []
+
+for t in data.get('telemetry', []):
+    received = datetime.fromisoformat(t['received_at'].replace('Z', '+00:00'))
+    if now - received > window:
+        continue
+    for e in json.loads(t.get('events_json', '[]')):
+        if e.get('severity') == 'critical':
+            critical_count += 1
+            alerts.append(f"🚨 **{t['agent_id']}** ({t.get('host','?')}): {e['message']}")
+
+if critical_count > 0:
+    # Create GitHub Issue as alert
+    issue_body = f'''## Bulwark Alert — {critical_count} critical events in last 20 min
+{chr(10).join(alerts)}
+
+*Auto-generated at {now.isoformat()}*
+'''
+    with open('/tmp/alert.md', 'w') as f:
+        f.write(issue_body)
+    print('ALERT_TRIGGERED=true' + chr(10) + 'ALERT_BODY<<EOF' + chr(10) + issue_body + chr(10) + 'EOF') >> \$GITHUB_ENV
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create alert issue
+        if: env.ALERT_TRIGGERED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { ALERT_BODY } = process.env;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Bulwark Alert: ${new Date().toISOString()}`,
+              body: ALERT_BODY,
+              labels: ['alert', 'bulwark', 'critical']
+            });

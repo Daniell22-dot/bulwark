@@ -1,0 +1,64 @@
+name: Telemetry Rollup
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Aggregate telemetry
+        run: |
+          python -c "
+import json, sqlite3, os
+from datetime import datetime, timezone
+
+# Read existing telemetry export
+try:
+    with open('data/telemetry.json') as f:
+        data = json.load(f)
+except:
+    data = {'telemetry': []}
+
+# Aggregate by agent and severity
+from collections import Counter
+by_agent = Counter()
+by_severity = Counter()
+for t in data.get('telemetry', []):
+    by_agent[t.get('agent_id', 'unknown')] += 1
+    for e in json.loads(t.get('events_json', '[]')):
+        by_severity[e.get('severity', 'info')] += 1
+
+summary = {
+    'generated_at': datetime.now(timezone.utc).isoformat(),
+    'total_events': sum(by_agent.values()),
+    'unique_agents': len(by_agent),
+    'by_agent': dict(by_agent),
+    'by_severity': dict(by_severity)
+}
+
+os.makedirs('data', exist_ok=True)
+with open('data/telemetry_summary.json', 'w') as f:
+    json.dump(summary, f, indent=2)
+print(json.dumps(summary, indent=2))
+      - name: Commit summary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/telemetry_summary.json || true
+          git commit -m "chore: hourly telemetry rollup $(date -u +%Y-%m-%dT%H:%M)" || echo "no changes"
+          git push
