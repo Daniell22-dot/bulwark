@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /assets/
+Disallow: /data/
+
+Sitemap: https://bulwark.co.ke/sitemap.xml
