@@ -465,4 +465,75 @@
     pushLine('<span class="dim">try: <span class="c">help</span> &middot; <span class="c">doctor</span> &middot; <span class="c">hunt run</span> &middot; <span class="c">webscan clone</span></span>');
     startTty();
   }
+
+  /* ===== THREAT INTEL DASHBOARD ===== */
+  async function loadThreatIntel() {
+    try {
+      // Try consensus first (has fleet correlation), fall back to raw feeds
+      let data = null;
+      try {
+        const resp = await fetch('data/fleet_consensus.json', { cache: 'no-store' });
+        if (resp.ok) data = await resp.json();
+      } catch {}
+      if (!data) {
+        const resp = await fetch('data/threat_intel.json', { cache: 'no-store' });
+        if (resp.ok) data = await resp.json();
+      }
+      if (!data) return;
+
+      const stats = data.stats || {};
+      document.getElementById('tiTotal')?.textContent = (data.total_ips || stats.total_threat_feeds || 0).toLocaleString();
+      document.getElementById('tiCorrelated')?.textContent = (stats.fleet_correlated || 0).toLocaleString();
+      document.getElementById('tiEmerging')?.textContent = (stats.fleet_only_emerging || 0).toLocaleString();
+      document.getElementById('tiAgents')?.textContent = (stats.agents_reporting || 0).toLocaleString();
+
+      // Feed table
+      const feedTable = document.getElementById('tiFeedTable');
+      if (feedTable && data.by_feed) {
+        feedTable.innerHTML = Object.entries(data.by_feed).map(([feed, count]) => {
+          const cfg = {
+            firehol_level1: { sev: 'High', desc: 'FireHOL Level 1 - aggressive attackers' },
+            firehol_level2: { sev: 'Medium', desc: 'FireHOL Level 2 - known abusive' },
+            firehol_level3: { sev: 'Low', desc: 'FireHOL Level 3 - potential risk' },
+            dshield_top10: { sev: 'Critical', desc: 'DShield Top 10 attacking IPs' },
+            dshield_block: { sev: 'High', desc: 'DShield recommended block list' },
+            feodo_tracker: { sev: 'Critical', desc: 'Feodo Tracker C2 IPs' },
+            sslbl_abuse: { sev: 'High', desc: 'SSLBL malicious SSL certificates' },
+            urlhaus_payloads: { sev: 'Critical', desc: 'URLhaus malware payload URLs' }
+          }[feed] || { sev: '—', desc: feed };
+          return `<tr><td>${feed}</td><td>${count.toLocaleString()}</td><td><span class="sev-${cfg.sev.toLowerCase()}">${cfg.sev}</span></td><td>${cfg.desc}</td></tr>`;
+        }).join('');
+      }
+
+      // Top threats table (consensus scored)
+      const topTable = document.getElementById('tiTopTable');
+      if (topTable && data.consensus) {
+        const threats = Object.entries(data.consensus)
+          .sort((a, b) => b[1].consensus_score - a[1].consensus_score)
+          .slice(0, 50);
+        topTable.innerHTML = threats.map(([ip, t]) => {
+          const fleet = t.fleet_agents ? t.fleet_agents.join(', ') : '—';
+          return `<tr><td class="mono">${ip}</td><td>${t.feeds?.join(', ') || '—'}</td><td><span class="sev-${(t.max_severity||'').toLowerCase()}">${t.max_severity||'—'}</span></td><td>${t.consensus_score}</td><td class="mono">${fleet}</td></tr>`;
+        }).join('');
+      }
+
+      // Feed status
+      const statusEl = document.getElementById('tiFeedStatus');
+      if (statusEl) {
+        const age = data.generated_at ? 'Updated: ' + new Date(data.generated_at).toLocaleString() : 'No data';
+        statusEl.textContent = `${age} · Source: GitHub Actions (no external API keys)`;
+      }
+    } catch (e) {
+      console.warn('Threat intel load failed:', e);
+    }
+  }
+
+  // Load on page ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadThreatIntel);
+  } else {
+    loadThreatIntel();
+  }
+  // Auto-refresh every 5 minutes
+  setInterval(loadThreatIntel, 5 * 60 * 1000);
 })();

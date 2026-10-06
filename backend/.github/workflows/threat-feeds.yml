@@ -1,0 +1,48 @@
+name: Threat Feed Ingestion
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    name: Fetch & Merge Threat Feeds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install deps
+        run: |
+          pip install httpx
+      
+      - name: Run threat feed ingestion
+        run: |
+          python backend/threat_feeds.py
+      
+      - name: Commit threat intel data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/threat_intel.json backend/threat_intel.db || true
+          git commit -m "chore: threat feed update $(date -u +%Y-%m-%dT%H:%M)" || echo "no changes"
+          git push
+      
+      - name: Upload DB as artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: threat-intel-db
+          path: backend/threat_intel.db
+          retention-days: 7

@@ -1,0 +1,42 @@
+name: Fleet Consensus
+
+on:
+  workflow_run:
+    workflows: ["Threat Feed Ingestion"]
+    types:
+      - completed
+  workflow_dispatch:
+  schedule:
+    - cron: '30 */6 * * *'  # 30 min after threat feeds
+
+permissions:
+  contents: write
+
+jobs:
+  consensus:
+    name: Correlate Fleet Telemetry with Threat Intel
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Run fleet consensus
+        run: |
+          python backend/fleet_consensus.py
+      
+      - name: Commit consensus data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fleet_consensus.json || true
+          git commit -m "chore: fleet consensus update $(date -u +%Y-%m-%dT%H:%M)" || echo "no changes"
+          git push

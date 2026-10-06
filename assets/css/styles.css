@@ -422,3 +422,22 @@ td .yes{color:var(--neon);} td .no{color:var(--txt-faint);}
   .btn { width:100%; justify-content:center; }
   .hero-actions { flex-direction:column; width:100%; }
 }
+
+/* ===== THREAT INTEL SECTION ===== */
+#threatIntel { padding-top: 40px; }
+.sev-critical { color: #ff5a5f; font-weight: 700; }
+.sev-high { color: #ff9f1a; font-weight: 700; }
+.sev-medium { color: #ffd700; font-weight: 700; }
+.sev-low { color: var(--neon); font-weight: 700; }
+.sev- { color: var(--txt-dim); }
+.stat { font-size: 2rem; font-weight: 800; color: var(--neon); font-family: var(--font-mono); margin-top: 8px; }
+#tiFeedTable td, #tiTopTable td { font-family: var(--font-mono); font-size: 0.78rem; padding: 6px 10px; }
+#tiFeedTable th, #tiTopTable th { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--txt-faint); padding: 8px 10px; border-bottom: 1px solid var(--stroke); }
+#tiFeedTable tr:hover, #tiTopTable tr:hover { background: var(--panel-soft); }
+details summary { user-select: none; }
+details[open] summary { color: var(--neon); }
+
+/* GitHub Pages friendly - ensure data files accessible */
+@media (prefers-reduced-motion: reduce) {
+  .term-cursor { animation: none; opacity: 1; }
+}

@@ -173,6 +173,39 @@
   </div>
 </section>
 
+<!-- THREAT INTELLIGENCE (live from GitHub Actions) -->
+<section class="section" id="threatIntel">
+  <div class="container">
+    <div class="sec-head">
+      <span class="kicker">Threat Intelligence</span>
+      <h2>Live blocklists — FireHOL, DShield, Feodo, Fleet consensus</h2>
+      <p>Updated every 6 hours via GitHub Actions. No external API keys, no vendor lock-in.</p>
+    </div>
+    <div class="grid grid-4" id="tiStats">
+      <div class="card"><div class="ico"><span class="g" data-icon="radar"></span></div><h3>Total IPs</h3><div class="stat" id="tiTotal">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="chart"></span></div><h3>Fleet Correlated</h3><div class="stat" id="tiCorrelated">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="bolt"></span></div><h3>Emerging (Fleet-only)</h3><div class="stat" id="tiEmerging">—</div></div>
+      <div class="card"><div class="ico"><span class="g" data-icon="shield"></span></div><h3>Active Agents</h3><div class="stat" id="tiAgents">—</div></div>
+    </div>
+    <div class="callout" id="tiFeedStatus" style="margin-top:16px; text-align:center; font-family:var(--font-mono); font-size:.8rem"></div>
+    <div class="table-wrap" style="margin-top:24px; max-height:320px; overflow:auto">
+      <table>
+        <thead><tr><th>Feed</th><th>IPs</th><th>Severity</th><th>Description</th></tr></thead>
+        <tbody id="tiFeedTable"></tbody>
+      </table>
+    </div>
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer; color:var(--neon); font-family:var(--font-mono); font-size:.85rem">View top 50 threat IPs (consensus scored)</summary>
+      <div class="table-wrap" style="margin-top:12px; max-height:300px; overflow:auto">
+        <table>
+          <thead><tr><th>IP</th><th>Feeds</th><th>Max Severity</th><th>Consensus Score</th><th>Fleet Agents</th></tr></thead>
+          <tbody id="tiTopTable"></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</section>
+
 <!-- CAPABILITIES -->
 <section class="section">
   <div class="container">

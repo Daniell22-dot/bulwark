@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-01-01T00:00:00Z",
+  "stats": {
+    "total_threat_feeds": 0,
+    "fleet_correlated": 0,
+    "fleet_only_emerging": 0,
+    "agents_reporting": 0
+  },
+  "enriched_threats": {},
+  "fleet_only_threats": {}
+}
