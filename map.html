@@ -73,6 +73,22 @@
   .lang-switch button { background: transparent; color: var(--txt-dim); border: 0; padding: 8px 18px; cursor: pointer; font-family: var(--font-mono); font-size: .78rem; letter-spacing: .1em; }
   .lang-switch button.on { background: var(--neon); color: #000; font-weight: 800; }
   @media (max-width:680px){ .feed-row { grid-template-columns: auto 1fr; } }
+
+  /* graticule (lat/lon grid) */
+  #kenyaSvg .grid-line { stroke: rgba(255,255,255,.07); stroke-width: .5; }
+  #kenyaSvg .grid-label { fill: rgba(255,255,255,.22); font: 500 7px 'JetBrains Mono', monospace; }
+  /* OSINT heatmap cells */
+  #kenyaSvg .osint-cell { stroke: rgba(255,255,255,.08); stroke-width: .4; }
+  /* county / region labels */
+  #kenyaSvg .county-label { fill: rgba(255,255,255,.5); font: 600 8px 'JetBrains Mono', monospace; letter-spacing: .04em; pointer-events: none; }
+  /* layer toggle controls */
+  .layer-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .layer-btn { background: rgba(255,255,255,.05); border: 1px solid var(--stroke); color: var(--txt-dim); padding: 6px 14px; font-family: var(--font-mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: all .15s ease; }
+  .layer-btn.on { background: var(--panel-hi); color: var(--txt); border-color: rgba(255,255,255,.3); }
+  .layer-btn:hover { border-color: rgba(255,255,255,.3); color: var(--txt); }
+  /* OSINT legend */
+  .osint-legend { display: inline-flex; align-items: center; gap: 10px; margin-top: 12px; font-family: var(--font-mono); font-size: .7rem; color: var(--txt-faint); }
+  .legend-bar { width: 120px; height: 8px; background: linear-gradient(to right, rgba(5,229,99,.15), rgba(5,229,99,.5), #ffd94d, #ffb347, #ff5a5f); border: 1px solid var(--stroke); }
 </style>
 </head>
 <body>
@@ -116,6 +132,16 @@
         <span class="st" id="stStatus"><b data-st="offline">offline</b></span>
         <span class="st" id="stEvents"><b>0</b> <span data-st="ev">events</span></span>
         <span class="st" id="stUpdated"><span data-st="upd">refreshes</span> &mdash;<span id="stCount"> 0</span></span>
+      </div>
+      <div class="layer-controls" role="group" aria-label="Map layers">
+        <button class="layer-btn on" data-layer="grid" type="button">Grid</button>
+        <button class="layer-btn" data-layer="osint" type="button">OSINT</button>
+        <button class="layer-btn on" data-layer="live" type="button">Live</button>
+      </div>
+      <div class="osint-legend" id="osintLegend" style="display:none">
+        <span>Threat density</span>
+        <div class="legend-bar"></div>
+        <span>Low → High</span>
       </div>
       <svg id="kenyaSvg" viewBox="0 0 400 470" role="img" aria-label="Approximate outline of Kenya with live threat markers"></svg>
     </div>
@@ -238,9 +264,13 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   }
 
   /* --- projection + base geography (stylised, approximate) --- */
-  var LON_MIN = 33.7, LON_MAX = 41.7, LAT_MAX = 5.4, LAT_MIN = -4.9;
+  var LON_MIN = 33.7, LON_MAX = 41.9, LAT_MAX = 5.0, LAT_MIN = -4.9;
+  var LON_STEP = (LON_MAX - LON_MIN) / 400;
+  var LAT_STEP = (LAT_MAX - LAT_MIN) / 470;
   function px(lon) { return (lon - LON_MIN) / (LON_MAX - LON_MIN) * 400; }
   function py(lat) { return (LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * 470; }
+  function lon(px) { return LON_MIN + px / 400 * (LON_MAX - LON_MIN); }
+  function lat(py) { return LAT_MAX - py / 470 * (LAT_MAX - LAT_MIN); }
   function poly(points) {
     return points.map(function (p) { return px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1); }).join(" ");
   }
@@ -260,7 +290,23 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   ];
   var CITIES = [
     ["Nairobi", -1.286, 36.817], ["Mombasa", -4.04, 39.66], ["Kisumu", -0.09, 34.75],
-    ["Eldoret", 0.51, 35.27], ["Nyeri", -0.42, 36.95], ["Garissa", -0.46, 39.65]
+    ["Eldoret", 0.51, 35.27], ["Nyeri", -0.42, 36.95], ["Garissa", -0.46, 39.65],
+    ["Nakuru", -0.30, 36.08], ["Malindi", -3.22, 40.12], ["Kakamega", 0.28, 34.75],
+    ["Meru", 0.05, 37.65], ["Thika", -1.03, 37.08], ["Machakos", -1.52, 37.27],
+    ["Kitui", -1.37, 38.02], ["Isiolo", 0.35, 38.58], ["Wajir", 1.75, 40.06],
+    ["Mandera", 3.94, 41.87], ["Lamu", -2.27, 40.90], ["Lodwar", 3.12, 35.60],
+    ["Busia", 0.46, 34.11], ["Bungoma", 0.57, 34.56]
+  ];
+  var COUNTIES = [
+    ["Nairobi", -1.29, 36.82], ["Mombasa", -4.04, 39.67], ["Kisumu", -0.09, 34.77],
+    ["Nakuru", -0.30, 36.08], ["Eldoret", 0.51, 35.27], ["Nyeri", -0.42, 36.95],
+    ["Garissa", -0.46, 39.64], ["Thika", -1.03, 37.08], ["Malindi", -3.22, 40.12],
+    ["Lamu", -2.27, 40.90], ["Kakamega", 0.28, 34.75], ["Meru", 0.05, 37.65],
+    ["Embu", -0.53, 37.45], ["Machakos", -1.52, 37.27], ["Kitui", -1.37, 38.02],
+    ["Isiolo", 0.35, 38.58], ["Wajir", 1.75, 40.06], ["Mandera", 3.94, 41.87],
+    ["Marsabit", 2.31, 37.99], ["Moyale", 3.52, 39.05], ["Lokichoggio", 4.34, 34.35],
+    ["Busia", 0.46, 34.11], ["Bungoma", 0.57, 34.56], ["Kitale", 1.02, 35.00],
+    ["Kapenguria", 1.24, 35.11], ["Turkana", 3.50, 35.85]
   ];
 
   function el(name, attrs, parent) {
@@ -269,6 +315,81 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     (parent || svg).appendChild(n);
     return n;
   }
+
+  /* layer visibility state */
+  var layers = { grid: true, osint: false, live: true };
+  function setLayer(name, on) {
+    layers[name] = on;
+    var grp = svg.querySelector("[data-layer='" + name + "']");
+    if (grp) grp.style.display = on ? "" : "none";
+    if (name === "osint") {
+      document.getElementById("osintLegend").style.display = on ? "" : "none";
+    }
+    document.querySelectorAll(".layer-btn[data-layer='" + name + "']").forEach(function (b) {
+      b.classList.toggle("on", on);
+    });
+  }
+
+  function drawGrid() {
+    var g = el("g", { "data-layer": "grid" }, svg);
+    if (!layers.grid) g.style.display = "none";
+    for (var lon = 34; lon <= 42; lon++) {
+      var x = px(lon);
+      el("line", { x1: x, y1: 0, x2: x, y2: 470, "class": "grid-line" }, g);
+      if (lon % 2 === 0) {
+        var lbl = el("text", { x: x + 2, y: 10, "class": "grid-label" }, g);
+        lbl.textContent = lon + "°E";
+      }
+    }
+    for (var lat = -5; lat <= 5; lat++) {
+      var y = py(lat);
+      el("line", { x1: 0, y1: y, x2: 400, y2: y, "class": "grid-line" }, g);
+      if (lat % 2 === 0) {
+        var lbl = el("text", { x: 2, y: y - 2, "class": "grid-label" }, g);
+        lbl.textContent = Math.abs(lat) + "°" + (lat < 0 ? "S" : "N");
+      }
+    }
+  }
+
+  function drawCounties() {
+    var g = el("g", { "data-layer": "grid" }, svg);
+    if (!layers.grid) g.style.display = "none";
+    COUNTIES.forEach(function (c) {
+      el("text", {
+        x: px(c[2]).toFixed(1),
+        y: py(c[1]).toFixed(1),
+        "class": "county-label",
+        "text-anchor": "middle"
+      }).textContent = c[0];
+    });
+  }
+
+  function osintColor(d) {
+    if (d >= 0.75) return "#ff5a5f";
+    if (d >= 0.50) return "#ffb347";
+    if (d >= 0.25) return "#ffd94d";
+    return "rgba(5,229,99,.18)";
+  }
+  function osintOpacity(d) {
+    return 0.12 + d * 0.55;
+  }
+
+  function drawOSINT(data) {
+    var g = el("g", { "data-layer": "osint" }, svg);
+    if (!layers.osint) g.style.display = "none";
+    (data || []).forEach(function (cell) {
+      var x = px(cell.lon);
+      var y = py(cell.lat);
+      var w = px(cell.lon + 1) - x;
+      var h = y - py(cell.lat + 1);
+      var r = Math.max(0.01, cell.density);
+      el("rect", {
+        x: x.toFixed(1), y: y.toFixed(1), width: w.toFixed(1), height: h.toFixed(1),
+        fill: osintColor(r), "fill-opacity": osintOpacity(r), "class": "osint-cell"
+      }, g);
+    });
+  }
+
   function drawBase() {
     el("polygon", { points: poly(KENYA), "class": "land" });
     el("polygon", { points: poly(LAKE), "class": "lake" });
@@ -278,6 +399,45 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
       if (c[0] === "Mombasa" || c[0] === "Kisumu" || c[0] === "Eldoret") lb = c[0].slice(0, 3) + ".";
       el("text", { x: (px(c[2]) + 5).toFixed(1), y: (py(c[1]) + 3).toFixed(1), "class": "citylabel" }).textContent = lb;
     });
+  }
+
+  /* load OSINT data from file or fall back to embedded snapshot */
+  var osintCache = null;
+  function loadOSINT() {
+    if (osintCache) return Promise.resolve(osintCache);
+    return fetch("data/osint_grid.json", { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("osint-fail"); return r.json(); })
+      .then(function (d) { osintCache = d; return d; })
+      .catch(function () {
+        return {
+          grid: [
+            {"lon":34,"lat":-1,"density":0.15},{"lon":34,"lat":0,"density":0.35},{"lon":34,"lat":1,"density":0.20},{"lon":34,"lat":2,"density":0.10},{"lon":34,"lat":3,"density":0.08},{"lon":34,"lat":4,"density":0.05},
+            {"lon":35,"lat":-4,"density":0.10},{"lon":35,"lat":-3,"density":0.12},{"lon":35,"lat":-2,"density":0.18},{"lon":35,"lat":-1,"density":0.55},{"lon":35,"lat":0,"density":0.60},{"lon":35,"lat":1,"density":0.45},{"lon":35,"lat":2,"density":0.30},{"lon":35,"lat":3,"density":0.15},{"lon":35,"lat":4,"density":0.10},
+            {"lon":36,"lat":-4,"density":0.08},{"lon":36,"lat":-3,"density":0.12},{"lon":36,"lat":-2,"density":0.20},{"lon":36,"lat":-1,"density":0.65},{"lon":36,"lat":0,"density":0.85},{"lon":36,"lat":1,"density":0.70},{"lon":36,"lat":2,"density":0.40},{"lon":36,"lat":3,"density":0.25},{"lon":36,"lat":4,"density":0.12},
+            {"lon":37,"lat":-4,"density":0.05},{"lon":37,"lat":-3,"density":0.10},{"lon":37,"lat":-2,"density":0.18},{"lon":37,"lat":-1,"density":0.50},{"lon":37,"lat":0,"density":0.95},{"lon":37,"lat":1,"density":0.60},{"lon":37,"lat":2,"density":0.35},{"lon":37,"lat":3,"density":0.20},{"lon":37,"lat":4,"density":0.10},
+            {"lon":38,"lat":-4,"density":0.05},{"lon":38,"lat":-3,"density":0.08},{"lon":38,"lat":-2,"density":0.15},{"lon":38,"lat":-1,"density":0.45},{"lon":38,"lat":0,"density":0.80},{"lon":38,"lat":1,"density":0.55},{"lon":38,"lat":2,"density":0.30},{"lon":38,"lat":3,"density":0.18},{"lon":38,"lat":4,"density":0.10},
+            {"lon":39,"lat":-4,"density":0.85},{"lon":39,"lat":-3,"density":0.20},{"lon":39,"lat":-2,"density":0.25},{"lon":39,"lat":-1,"density":0.40},{"lon":39,"lat":0,"density":0.70},{"lon":39,"lat":1,"density":0.45},{"lon":39,"lat":2,"density":0.25},{"lon":39,"lat":3,"density":0.15},{"lon":39,"lat":4,"density":0.08},
+            {"lon":40,"lat":-4,"density":0.15},{"lon":40,"lat":-3,"density":0.12},{"lon":40,"lat":-2,"density":0.20},{"lon":40,"lat":-1,"density":0.35},{"lon":40,"lat":0,"density":0.50},{"lon":40,"lat":1,"density":0.30},{"lon":40,"lat":2,"density":0.18},{"lon":40,"lat":3,"density":0.12},{"lon":40,"lat":4,"density":0.06},
+            {"lon":41,"lat":-3,"density":0.10},{"lon":41,"lat":-2,"density":0.12},{"lon":41,"lat":-1,"density":0.20},{"lon":41,"lat":0,"density":0.25},{"lon":41,"lat":1,"density":0.15},{"lon":41,"lat":2,"density":0.10},{"lon":41,"lat":3,"density":0.08},{"lon":41,"lat":4,"density":0.05}
+          ],
+          counties: [
+            {"name":"Nairobi","lat":-1.29,"lon":36.82,"density":0.95},{"name":"Mombasa","lat":-4.04,"lon":39.67,"density":0.85},
+            {"name":"Kisumu","lat":-0.09,"lon":34.77,"density":0.65},{"name":"Nakuru","lat":-0.30,"lon":36.08,"density":0.60},
+            {"name":"Eldoret","lat":0.51,"lon":35.27,"density":0.55},{"name":"Nyeri","lat":-0.42,"lon":36.95,"density":0.50},
+            {"name":"Garissa","lat":-0.46,"lon":39.64,"density":0.45},{"name":"Thika","lat":-1.03,"lon":37.08,"density":0.50},
+            {"name":"Malindi","lat":-3.22,"lon":40.12,"density":0.30},{"name":"Lamu","lat":-2.27,"lon":40.90,"density":0.20},
+            {"name":"Kakamega","lat":0.28,"lon":34.75,"density":0.40},{"name":"Meru","lat":0.05,"lon":37.65,"density":0.40},
+            {"name":"Embu","lat":-0.53,"lon":37.45,"density":0.35},{"name":"Machakos","lat":-1.52,"lon":37.27,"density":0.35},
+            {"name":"Kitui","lat":-1.37,"lon":38.02,"density":0.25},{"name":"Isiolo","lat":0.35,"lon":38.58,"density":0.20},
+            {"name":"Wajir","lat":1.75,"lon":40.06,"density":0.15},{"name":"Mandera","lat":3.94,"lon":41.87,"density":0.12},
+            {"name":"Marsabit","lat":2.31,"lon":37.99,"density":0.15},{"name":"Moyale","lat":3.52,"lon":39.05,"density":0.10},
+            {"name":"Lokichoggio","lat":4.34,"lon":34.35,"density":0.08},{"name":"Busia","lat":0.46,"lon":34.11,"density":0.30},
+            {"name":"Bungoma","lat":0.57,"lon":34.56,"density":0.30},{"name":"Kitale","lat":1.02,"lon":35.00,"density":0.25},
+            {"name":"Kapenguria","lat":1.24,"lon":35.11,"density":0.15},{"name":"Lodwar","lat":3.12,"lon":35.60,"density":0.10},
+            {"name":"Turkana","lat":3.50,"lon":35.85,"density":0.05}
+          ]
+        };
+      });
   }
 
   var pings = { };
@@ -396,6 +556,17 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   }
 
   drawBase();
+  drawGrid();
+  drawCounties();
+  loadOSINT().then(function (d) { drawOSINT(d.grid); });
+  setLayer("grid", true);
+  setLayer("osint", false);
+  setLayer("live", true);
+
+  document.querySelectorAll(".layer-btn").forEach(function (b) {
+    b.addEventListener("click", function () { setLayer(b.getAttribute("data-layer"), !layers[b.getAttribute("data-layer")]); });
+  });
+
   setLang();
   poll();
   setInterval(poll, 30000);
