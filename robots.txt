@@ -3,4 +3,4 @@ Allow: /
 Disallow: /assets/
 Disallow: /data/
 
-Sitemap: https://bulwark.co.ke/sitemap.xml
+Sitemap: https://example.com/sitemap.xml

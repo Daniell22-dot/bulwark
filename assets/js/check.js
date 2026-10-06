@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------
    Bulwark Check engine (extracted from check.html)
    ----------------------------------------------------------------- */
-window.BULWARK_INTEL = "https://intel.bulwark.co.ke";
+window.BULWARK_INTEL = "https://intel.example.com";
 window.BULWARK_SNAPSHOT = "data/blocklist.json";
 window.BULWARK_SNAPSHOT_JS = "data/blocklist.js";
 

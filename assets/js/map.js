@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------
    Bulwark Live map engine (extracted from map.html)
    ----------------------------------------------------------------- */
-window.BULWARK_LIVE = "https://live.bulwark.co.ke";
+window.BULWARK_LIVE = "https://live.example.com";
 window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
 window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
 

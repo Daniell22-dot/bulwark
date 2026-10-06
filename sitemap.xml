@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://bulwark.co.ke/</loc>
+    <loc>https://example.com/</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/features</loc>
+    <loc>https://example.com/features</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.9</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/pricing</loc>
+    <loc>https://example.com/pricing</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.9</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/check</loc>
+    <loc>https://example.com/check</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.8</priority>
     <changefreq>daily</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/map</loc>
+    <loc>https://example.com/map</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.8</priority>
     <changefreq>daily</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/about</loc>
+    <loc>https://example.com/about</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/contact</loc>
+    <loc>https://example.com/contact</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/reports</loc>
+    <loc>https://example.com/reports</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/privacy</loc>
+    <loc>https://example.com/privacy</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/terms</loc>
+    <loc>https://example.com/terms</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://bulwark.co.ke/dpa</loc>
+    <loc>https://example.com/dpa</loc>
     <lastmod>2026-10-06</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
