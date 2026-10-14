@@ -40,7 +40,7 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   }
 
   /* --- projection + base geography (stylised, approximate) --- */
-  var LON_MIN = 33.7, LON_MAX = 41.9, LAT_MAX = 5.0, LAT_MIN = -4.9;
+  var LON_MIN = 33.7, LON_MAX = 42.0, LAT_MAX = 5.5, LAT_MIN = -4.9;
   var LON_STEP = (LON_MAX - LON_MIN) / 400;
   var LAT_STEP = (LAT_MAX - LAT_MIN) / 470;
   function px(lon) { return (lon - LON_MIN) / (LON_MAX - LON_MIN) * 400; }
@@ -162,8 +162,7 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     });
   }
 
-  function drawBase() {
-    el("polygon", { points: poly(KENYA), "class": "land" });
+  function drawCities() {
     CITIES.forEach(function (c) {
       el("circle", { cx: px(c[2]).toFixed(1), cy: py(c[1]).toFixed(1), r: 2, "class": "city" });
       var lb = c[0];
@@ -172,14 +171,20 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     });
   }
 
-  /* load GeoJSON county basemap */
+  /* stylised approximate outline — used ONLY if the real GeoJSON fails to load */
+  function drawFallbackOutline() {
+    if (svg.querySelector("g[data-layer='basemap']")) return;
+    el("polygon", { points: poly(KENYA), "class": "land" });
+  }
+
+  /* load GeoJSON county basemap (the real Kenyan counties) */
   var geojsonCache = null;
   function drawGeoJSONBasemap() {
     if (geojsonCache) { renderGeoJSON(geojsonCache); return; }
     fetch("data/kenya_counties.geojson", { headers: { "Accept": "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error("geojson-fail"); return r.json(); })
       .then(function (data) { geojsonCache = data; renderGeoJSON(data); })
-      .catch(function () {});
+      .catch(function () { drawFallbackOutline(); });
   }
   function renderGeoJSON(data) {
     var g = el("g", { "data-layer": "basemap" }, svg);
@@ -358,7 +363,7 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
       .catch(showOffline);
   }
 
-  drawBase();
+  drawCities();
   drawGeoJSONBasemap();
   drawGrid();
   drawCounties();
