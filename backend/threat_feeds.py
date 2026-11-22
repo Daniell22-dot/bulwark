@@ -2,6 +2,7 @@ import os
 import json
 import sqlite3
 import hashlib
+import ipaddress
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Dict, Set, Optional
@@ -41,8 +42,8 @@ FEEDS = {
         "severity": "high"
     },
     "feodo_tracker": {
-        "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
-        "type": "feodo",
+        "url": "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt",
+        "type": "plain_ips",
         "description": "Feodo Tracker C2 IPs",
         "severity": "critical"
     },
@@ -51,12 +52,6 @@ FEEDS = {
         "type": "sslbl",
         "description": "SSLBL malicious SSL certificates",
         "severity": "high"
-    },
-    "urlhaus_payloads": {
-        "url": "https://urlhaus.abuse.ch/downloads/payloads/",
-        "type": "urlhaus",
-        "description": "URLhaus malware payload URLs",
-        "severity": "critical"
     }
 }
 
@@ -93,6 +88,18 @@ def parse_feodo(content: str) -> List[str]:
         pass
     return ips
 
+def parse_plain_ips(content: str) -> List[str]:
+    ips = []
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            ips.append(str(ipaddress.ip_address(line.split()[0])))
+        except (ValueError, IndexError):
+            continue
+    return ips
+
 def parse_sslbl(content: str) -> List[str]:
     """Parse SSLBL CSV (sha256,listingdate,ip,port,reason)."""
     ips = []
@@ -106,6 +113,7 @@ PARSERS = {
     "ipset": parse_ipset,
     "dshield": parse_dshield,
     "feodo": parse_feodo,
+    "plain_ips": parse_plain_ips,
     "sslbl": parse_sslbl,
 }
 
@@ -156,11 +164,11 @@ class ThreatFeedIngestor:
                             fetched_at=datetime.now(timezone.utc).isoformat(),
                             source_url=cfg["url"]
                         )
-                        print(f"✓ {name}: {len(ips)} IPs")
+                        print(f"OK {name}: {len(ips)} IPs")
                     else:
-                        print(f"✗ {name}: no parser for type {cfg['type']}")
+                        print(f"FAIL {name}: no parser for type {cfg['type']}")
                 except Exception as e:
-                    print(f"✗ {name}: {e}")
+                    print(f"FAIL {name}: {e}")
         return results
     
     def merge_and_store(self, results: Dict[str, ThreatIntel]) -> Dict:
@@ -227,26 +235,72 @@ class ThreatFeedIngestor:
                     json.dumps(data["sources"])
                 ))
         
-        # Export JSON for frontend
+        top_consensus = dict(sorted(
+            consensus.items(),
+            key=lambda item: item[1]["consensus_score"],
+            reverse=True
+        )[:1000])
         export = {
             "generated_at": now,
             "total_ips": len(consensus),
             "by_feed": {name: len(intel.ips) for name, intel in results.items()},
-            "consensus": consensus
+            "consensus": top_consensus
         }
         
         export_path = self.data_dir / "threat_intel.json"
         with open(export_path, "w") as f:
-            json.dump(export, f, indent=2)
+            json.dump(export, f, separators=(",", ":"))
         
         return export
 
+def load_previous_export(data_dir: Path) -> Dict:
+    try:
+        with open(data_dir / "threat_intel.json", encoding="utf-8") as f:
+            previous = json.load(f)
+        return previous if isinstance(previous, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def results_from_previous(previous: Dict, names: List[str]) -> Dict[str, ThreatIntel]:
+    results = {}
+    consensus = previous.get("consensus", {})
+    if not isinstance(consensus, dict):
+        return results
+    fetched_at = previous.get("generated_at", datetime.now(timezone.utc).isoformat())
+    for name in names:
+        if name not in FEEDS:
+            continue
+        ips = {ip for ip, meta in consensus.items()
+               if isinstance(meta, dict) and name in (meta.get("feeds") or [])}
+        if not ips:
+            continue
+        results[name] = ThreatIntel(
+            feed_name=name,
+            ips=ips,
+            severity=FEEDS[name]["severity"],
+            fetched_at=fetched_at,
+            source_url=FEEDS[name]["url"]
+        )
+    return results
+
+
 async def run_ingestion(data_dir: str = "./data") -> Dict:
     """Main entry point for GitHub Actions workflow."""
-    ingestor = ThreatFeedIngestor(Path(data_dir))
+    data_path = Path(data_dir)
+    previous = load_previous_export(data_path)
+    ingestor = ThreatFeedIngestor(data_path)
     results = await ingestor.fetch_all()
-    export = ingestor.merge_and_store(results)
-    return export
+    for name, intel in results_from_previous(previous, [n for n in FEEDS if n not in results]).items():
+        results[name] = intel
+    if not results:
+        return previous or {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_ips": 0,
+            "by_feed": {},
+            "consensus": {}
+        }
+    return ingestor.merge_and_store(results)
 
 if __name__ == "__main__":
     import asyncio

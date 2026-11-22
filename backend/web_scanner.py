@@ -8,6 +8,7 @@ import os
 import json
 import asyncio
 import re
+import socket
 import ssl
 import urllib.parse
 from datetime import datetime, timezone
@@ -516,5 +517,4 @@ async def main():
         json.dump(summary, f, indent=2)
 
 if __name__ == "__main__":
-    import socket  # for TLS check
     asyncio.run(main())

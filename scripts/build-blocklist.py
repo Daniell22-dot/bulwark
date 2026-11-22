@@ -2,7 +2,7 @@
 """Build a static, keyless threat-intel snapshot for the Bulwark free tools.
 
 Fetches the same community feeds the engine uses (no API keys), parses them
-with the same rules as Sentinel.ThreatIntel, and writes data/blocklist.json so
+with the same rules as Bulwark.ThreatIntel, and writes data/blocklist.json so
 /check works even when the engine/server is offline. The live API, when
 reachable, still augments this snapshot.
 """
@@ -16,7 +16,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-UA = "SentinelThreatIntel/2.0 (+https://bulwark.co.ke)"
+UA = "BulwarkThreatIntel/2.0 (+https://bulwark.co.ke)"
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "data", "blocklist.json")
 
@@ -129,7 +129,17 @@ PARSERS = {"netset": parse_netset, "dshield": parse_dshield,
            "plain_ips": parse_plain_ips, "url_hosts": parse_url_hosts}
 
 
+def load_previous():
+    try:
+        with open(OUT, encoding="utf-8") as fh:
+            previous = json.load(fh)
+        return previous if isinstance(previous, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
 def main():
+    previous = load_previous()
     nets = {}
     domains = {}
     sources = []
@@ -138,7 +148,11 @@ def main():
             entries = PARSERS[kind](fetch(url))
             error = None
         except Exception as ex:
-            entries, error = [], str(ex)
+            error = str(ex)
+            fallback = previous.get("domains" if kind == "url_hosts" else "nets", {})
+            entries = fallback.get(name, []) if isinstance(fallback, dict) else []
+            if entries:
+                error = "{0}; using previous snapshot".format(error)
         if kind == "url_hosts":
             if entries:
                 domains[name] = entries

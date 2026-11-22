@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------
    Bulwark Live map engine (extracted from map.html)
    ----------------------------------------------------------------- */
-window.BULWARK_LIVE = "https://live.example.com";
+window.BULWARK_LIVE = window.BULWARK_LIVE || "https://live.example.com";
 window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
 window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
 
@@ -16,11 +16,12 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     empty:    { en: "No detections yet. The fleet console is listening — as soon as an agent reports a threat, it lands here.", sw: "Hakuna matukio bado. Fleet console inasikiliza — mara tu agent inaporipoti tishio, litaonekana hapa." },
     justnow:  { en: "just now", sw: "sasa hivi" },
     minsAgo:  { en: "min ago", sw: "dakika iliyopita" },
-    bannerOn: { en: "Map is offline — the fleet console is not reachable on this network. Start Sentinel.Console and expose /api/live (see your deployment notes), then this page lights up on its own.", sw: "Ramani haipo mtandaoni — fleet console haifikiki. Anzisha Sentinel.Console na ufunue /api/live (tazama maelezo yako ya usambazaji), kisha ukurasa huu utawaka peke yake." },
+    bannerOn: { en: "Map is offline — the fleet console is not reachable on this network. Start Bulwark.Console and expose /api/live (see your deployment notes), then this page lights up on its own.", sw: "Ramani haipo mtandaoni — fleet console haifikiki. Anzisha Bulwark.Console na ufunue /api/live (tazama maelezo yako ya usambazaji), kisha ukurasa huu utawaka peke yake." },
     bannerCached: { en: "Fleet console offline — showing the last bundled snapshot from", sw: "Fleet console haipo mtandaoni — inaonyesha snapshot ya mwisho iliyopakiwa ya" },
     bannerEmpty: { en: "Fleet console offline and no snapshot is bundled yet. Once an agent reports, export data/live.json (scripts/export-live.ps1) and commit it.", sw: "Fleet console haipo mtandaoni na hakuna snapshot bado. Mara agent inaporipoti, hamisha data/live.json (scripts/export-live.ps1) na uiweke." }
   };
   var liveBase = window.BULWARK_LIVE || "http://127.0.0.1:5000";
+  function liveConfigured(base) { return !!base && base.indexOf("example.com") === -1; }
   var svg = document.getElementById("kenyaSvg");
   var NS = "http://www.w3.org/2000/svg";
   var feed = document.getElementById("liveFeed");
@@ -353,6 +354,7 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
   }
 
   function poll() {
+    if (!liveConfigured(liveBase)) { showOffline(); return; }
     fetch(liveBase + "/api/live", { headers: { "Accept": "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (d) {

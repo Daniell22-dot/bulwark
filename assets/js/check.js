@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------
    Bulwark Check engine (extracted from check.html)
    ----------------------------------------------------------------- */
-window.BULWARK_INTEL = "https://intel.example.com";
+window.BULWARK_INTEL = window.BULWARK_INTEL || "https://intel.example.com";
 window.BULWARK_SNAPSHOT = "data/blocklist.json";
 window.BULWARK_SNAPSHOT_JS = "data/blocklist.js";
 
@@ -27,6 +27,7 @@ window.BULWARK_SNAPSHOT_JS = "data/blocklist.js";
     sourcesHead:{ en: "Sources", sw: "Vyanzo" }
   };
   var intelBase = window.BULWARK_INTEL || "http://127.0.0.1:5599";
+  function liveConfigured(base) { return !!base && base.indexOf("example.com") === -1; }
   var $ = function (id) { return document.getElementById(id); };
   var input = $("addrInput"), btn = $("runCheck"), verdict = $("verdict"),
       vTag = $("vTag"), vValue = $("vValue"), vSources = $("vSources"),
@@ -189,15 +190,17 @@ window.BULWARK_SNAPSHOT_JS = "data/blocklist.js";
     verdict.classList.remove("show");
     var done = function () { btn.textContent = t(STR.checkGo); btn.disabled = false; };
 
-    var live = fetch(intelBase + "/intel/check/" + encodeURIComponent(raw), {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    }).then(function (r) {
-      if (r.status === 429) throw new Error("rate");
-      if (r.status === 400) throw new Error("bad");
-      if (!r.ok) throw new Error("off");
-      return r.json();
-    });
+    var live = liveConfigured(intelBase)
+      ? fetch(intelBase + "/intel/check/" + encodeURIComponent(raw), {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        }).then(function (r) {
+          if (r.status === 429) throw new Error("rate");
+          if (r.status === 400) throw new Error("bad");
+          if (!r.ok) throw new Error("off");
+          return r.json();
+        })
+      : Promise.reject(new Error("off"));
     // don't hang the UI if the tunnel/server is asleep — fall back fast
     var raced = new Promise(function (resolve, reject) {
       var to = setTimeout(function () { reject(new Error("off")); }, 5000);

@@ -483,17 +483,28 @@
   /* ===== THREAT INTEL DASHBOARD ===== */
   async function loadThreatIntel() {
     try {
-      // Try consensus first (has fleet correlation), fall back to raw feeds
-      let data = null;
-      try {
-        const resp = await fetch('data/fleet_consensus.json', { cache: 'no-store' });
-        if (resp.ok) data = await resp.json();
-      } catch {}
-      if (!data) {
-        const resp = await fetch('data/threat_intel.json', { cache: 'no-store' });
-        if (resp.ok) data = await resp.json();
+      async function readJson(path) {
+        try {
+          const resp = await fetch(path, { cache: 'no-store' });
+          return resp.ok ? await resp.json() : null;
+        } catch {
+          return null;
+        }
       }
-      if (!data) return;
+
+      const [consensusData, feedData] = await Promise.all([
+        readJson('data/fleet_consensus.json'),
+        readJson('data/threat_intel.json')
+      ]);
+      if (!consensusData && !feedData) return;
+
+      const data = {
+        generated_at: (feedData && feedData.generated_at) || (consensusData && consensusData.generated_at),
+        total_ips: (feedData && feedData.total_ips) || 0,
+        stats: (consensusData && consensusData.stats) || {},
+        by_feed: (feedData && feedData.by_feed) || {},
+        consensus: (feedData && feedData.consensus) || {}
+      };
 
       const stats = data.stats || {};
       const tiTotal = document.getElementById('tiTotal');
@@ -567,6 +578,7 @@
       const ghaCritical = document.getElementById('ghaCritical');
       const ghaHigh = document.getElementById('ghaHigh');
       const ghaMedium = document.getElementById('ghaMedium');
+      const bySev = data.by_severity || {};
       if (ghaTargets) ghaTargets.textContent = data.targets?.length || 0;
       if (ghaCritical) ghaCritical.textContent = bySev.critical || 0;
       if (ghaHigh) ghaHigh.textContent = bySev.high || 0;

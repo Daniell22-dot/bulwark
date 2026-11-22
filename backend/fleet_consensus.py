@@ -91,15 +91,21 @@ def run_consensus(data_dir: str = "./data") -> Dict:
     telemetry = load_agent_telemetry(telemetry_db)
     result = fleet_consensus(threat_ips, telemetry)
     
-    # Export
+    enriched = dict(sorted(
+        result["enriched_threats"].items(),
+        key=lambda item: item[1].get("consensus_score", 0),
+        reverse=True
+    )[:1000])
     export = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        **result
+        "enriched_threats": enriched,
+        "fleet_only_threats": result["fleet_only_threats"],
+        "stats": result["stats"]
     }
     
     out_path = Path(data_dir) / "fleet_consensus.json"
     with open(out_path, "w") as f:
-        json.dump(export, f, indent=2)
+        json.dump(export, f, separators=(",", ":"))
     
     return export
 

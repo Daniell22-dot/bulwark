@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/blocklist.json
+          git add data/blocklist.json data/blocklist.js
           if git diff --cached --quiet; then
             echo "snapshot unchanged"
           else

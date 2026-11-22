@@ -1,0 +1,135 @@
+name: Security Posture Dashboard
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  security-events: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  collect-metrics:
+    name: Collect Security Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Collect security metrics
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+
+          repo = os.getenv('GITHUB_REPOSITORY', '')
+          metrics = {
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'repository': repo,
+              'branch': os.getenv('GITHUB_REF_NAME', 'main'),
+          }
+
+          def run_command(*args):
+              return subprocess.run(list(args), capture_output=True, text=True)
+
+          result = run_command('gh', 'api', f'/repos/{repo}/dependabot/alerts', '--jq', 'length')
+          metrics['dependabot_alerts'] = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+
+          prs = run_command('gh', 'pr', 'list', '--label', 'security', '--state', 'open', '--json', 'number')
+          try:
+              metrics['open_security_prs'] = len(json.loads(prs.stdout)) if prs.stdout.strip() else 0
+          except ValueError:
+              metrics['open_security_prs'] = 0
+
+          prs = run_command('gh', 'pr', 'list', '--label', 'dependencies', '--state', 'open', '--json', 'number')
+          try:
+              metrics['open_dependency_prs'] = len(json.loads(prs.stdout)) if prs.stdout.strip() else 0
+          except ValueError:
+              metrics['open_dependency_prs'] = 0
+
+          for scan in ['web-scan', 'repo-scan', 'threat-feeds', 'fleet-consensus', 'telemetry-rollup']:
+              runs = run_command('gh', 'run', 'list', '--workflow', f'{scan}.yml', '--limit', '1', '--json', 'conclusion,createdAt')
+              try:
+                  parsed = json.loads(runs.stdout) if runs.stdout.strip() else []
+              except ValueError:
+                  parsed = []
+              metrics[f'last_{scan}'] = parsed[0] if parsed else None
+
+          for key, endpoint in [('codeql_alerts', 'code-scanning/alerts'), ('secret_alerts', 'secret-scanning/alerts')]:
+              result = run_command('gh', 'api', f'/repos/{repo}/{endpoint}', '--jq', 'length')
+              metrics[key] = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+
+          with open('security_metrics.json', 'w') as f:
+              json.dump(metrics, f, indent=2)
+          print(json.dumps(metrics, indent=2))
+          PY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit metrics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add security_metrics.json || true
+          git commit -m "chore: security posture metrics $(date -u +%Y-%m-%d)" || echo "no changes"
+          git push
+
+      - name: Build alert body
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json
+
+          with open('security_metrics.json') as f:
+              m = json.load(f)
+
+          alerts = []
+          if m.get('dependabot_alerts', 0) > 0:
+              alerts.append('Dependabot alerts: {0}'.format(m['dependabot_alerts']))
+          if m.get('codeql_alerts', 0) > 0:
+              alerts.append('CodeQL alerts: {0}'.format(m['codeql_alerts']))
+          if m.get('secret_alerts', 0) > 0:
+              alerts.append('Secret scanning alerts: {0}'.format(m['secret_alerts']))
+
+          if alerts:
+              body = "## 🚨 Security Posture Alert\n{0} issues detected in automated security posture check.\n\n**Issues:**\n{1}\n\n**Metrics:**\n- Dependabot alerts: {2}\n- CodeQL alerts: {3}\n- Secret scanning alerts: {4}\n- Open security PRs: {5}\n- Open dependency PRs: {6}\n\n*Auto-generated daily security posture check.*".format(
+                  len(alerts),
+                  "\n".join('- {0}'.format(a) for a in alerts),
+                  m.get('dependabot_alerts', 0),
+                  m.get('codeql_alerts', 0),
+                  m.get('secret_alerts', 0),
+                  m.get('open_security_prs', 0),
+                  m.get('open_dependency_prs', 0))
+              print('ALERT=true')
+              print('ALERT_BODY<<EOF')
+              print(body)
+              print('EOF')
+          PY
+
+      - name: Create security posture issue
+        if: env.ALERT == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { ALERT_BODY } = process.env;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🛡️ Daily Security Posture: Issues Detected`,
+              body: ALERT_BODY,
+              labels: ['security', 'posture', 'automated', 'daily']
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
