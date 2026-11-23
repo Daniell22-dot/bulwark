@@ -47,11 +47,29 @@ FEEDS = {
         "description": "Feodo Tracker C2 IPs",
         "severity": "critical"
     },
-    "sslbl_abuse": {
-        "url": "https://sslbl.abuse.ch/blacklist/sslblblacklist.csv",
-        "type": "sslbl",
-        "description": "SSLBL malicious SSL certificates",
-        "severity": "high"
+    "et_compromised": {
+        "url": "https://rules.emergingthreats.net/blockrules/compromised-ips.txt",
+        "type": "plain_ips",
+        "description": "Emerging Threats compromised IPs",
+        "severity": "high",
+        "category": "compromised-hosts",
+        "license": "ET Open ruleset"
+    },
+    "spamhaus_drop": {
+        "url": "https://www.spamhaus.org/drop/drop.txt",
+        "type": "drop",
+        "description": "Spamhaus DROP hijacked networks",
+        "severity": "critical",
+        "category": "hijacked-networks",
+        "license": "Spamhaus DROP terms"
+    },
+    "tor_exit_nodes": {
+        "url": "https://check.torproject.org/torbulkexitlist",
+        "type": "plain_ips",
+        "description": "Tor Project exit nodes",
+        "severity": "medium",
+        "category": "anonymisation",
+        "license": "Tor Project public list"
     }
 }
 
@@ -109,12 +127,26 @@ def parse_sslbl(content: str) -> List[str]:
             ips.append(parts[2].strip())
     return ips
 
+
+def parse_drop(content: str) -> List[str]:
+    nets = []
+    for line in content.splitlines():
+        value = line.split(";", 1)[0].strip()
+        if not value or value.startswith("#"):
+            continue
+        try:
+            nets.append(str(ipaddress.ip_network(value, strict=False)))
+        except ValueError:
+            continue
+    return nets
+
 PARSERS = {
     "ipset": parse_ipset,
     "dshield": parse_dshield,
     "feodo": parse_feodo,
     "plain_ips": parse_plain_ips,
     "sslbl": parse_sslbl,
+    "drop": parse_drop,
 }
 
 # ─── Core Logic ───
@@ -125,6 +157,8 @@ class ThreatIntel:
     severity: str
     fetched_at: str
     source_url: str
+    license: str = ""
+    category: str = ""
 
 class ThreatFeedIngestor:
     def __init__(self, data_dir: Path):
@@ -162,7 +196,9 @@ class ThreatFeedIngestor:
                             ips=ips,
                             severity=cfg["severity"],
                             fetched_at=datetime.now(timezone.utc).isoformat(),
-                            source_url=cfg["url"]
+                            source_url=cfg["url"],
+                            license=cfg.get("license", ""),
+                            category=cfg.get("category", "")
                         )
                         print(f"OK {name}: {len(ips)} IPs")
                     else:
@@ -191,7 +227,9 @@ class ThreatFeedIngestor:
                 meta["last_seen"] = intel.fetched_at
                 meta["sources"][name] = {
                     "severity": intel.severity,
-                    "url": intel.source_url
+                    "url": intel.source_url,
+                    "license": intel.license,
+                    "category": intel.category
                 }
         
         # Consensus scoring
@@ -244,6 +282,16 @@ class ThreatFeedIngestor:
             "generated_at": now,
             "total_ips": len(consensus),
             "by_feed": {name: len(intel.ips) for name, intel in results.items()},
+            "feed_metadata": {
+                name: {
+                    "description": FEEDS.get(name, {}).get("description", ""),
+                    "severity": intel.severity,
+                    "license": intel.license,
+                    "category": intel.category,
+                    "url": intel.source_url
+                }
+                for name, intel in results.items()
+            },
             "consensus": top_consensus
         }
         
@@ -280,7 +328,9 @@ def results_from_previous(previous: Dict, names: List[str]) -> Dict[str, ThreatI
             ips=ips,
             severity=FEEDS[name]["severity"],
             fetched_at=fetched_at,
-            source_url=FEEDS[name]["url"]
+            source_url=FEEDS[name]["url"],
+            license=FEEDS[name].get("license", ""),
+            category=FEEDS[name].get("category", "")
         )
     return results
 

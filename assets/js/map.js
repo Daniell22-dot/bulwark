@@ -99,6 +99,8 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
     if (grp) grp.style.display = on ? "" : "none";
     if (name === "osint") {
       document.getElementById("osintLegend").style.display = on ? "" : "none";
+      var sources = document.getElementById("osintSources");
+      if (sources) sources.style.display = on ? "flex" : "none";
     }
     document.querySelectorAll(".layer-btn[data-layer='" + name + "']").forEach(function (b) {
       b.classList.toggle("on", on);
@@ -311,6 +313,27 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
       });
   }
 
+  function renderOSINTSources() {
+    var host = document.getElementById("osintSources");
+    var data = window.BULWARK_OSINT_SOURCES;
+    if (!host || !data || !Array.isArray(data.sources)) return;
+    host.textContent = "";
+    data.sources.forEach(function (source) {
+      var chip = document.createElement("span");
+      chip.className = "osint-source" + (source.error ? " err" : "");
+      var label = document.createElement("b");
+      label.textContent = source.label || source.name || "source";
+      var count = document.createElement("span");
+      count.textContent = Number(source.count || 0).toLocaleString() + (source.error ? " cached" : "");
+      var detail = [source.category, source.license];
+      if (source.error) detail.push(source.error);
+      chip.title = detail.filter(Boolean).join(" · ");
+      chip.appendChild(label);
+      chip.appendChild(count);
+      host.appendChild(chip);
+    });
+  }
+
   var pings = { };
 
   function addMarker(e) {
@@ -429,6 +452,7 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
 
   drawCities();
   drawGeoJSONBasemap();
+  renderOSINTSources();
   drawGrid();
   drawCounties();
   loadOSINT().then(function (d) { drawOSINT(d.grid); });

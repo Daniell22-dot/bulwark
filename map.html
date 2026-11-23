@@ -91,6 +91,11 @@
   /* OSINT legend */
   .osint-legend { display: inline-flex; align-items: center; gap: 10px; margin-top: 12px; font-family: var(--font-mono); font-size: .7rem; color: var(--txt-faint); }
   .legend-bar { width: 120px; height: 8px; background: linear-gradient(to right, rgba(5,229,99,.15), rgba(5,229,99,.5), #ffd94d, #ffb347, #ff5a5f); border: 1px solid var(--stroke); }
+  .osint-sources { display: none; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .osint-source { display: inline-flex; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid var(--stroke); background: rgba(255,255,255,.03); font-family: var(--font-mono); font-size: .65rem; color: var(--txt-faint); }
+  .osint-source b { color: var(--neon); font-weight: 700; }
+  .osint-source.err { border-color: rgba(255,179,71,.4); }
+  .osint-source.err b { color: #ffb347; }
 </style>
 </head>
 <body>
@@ -123,7 +128,7 @@
       </div>
     </div>
     <h1>Attacks being blocked<br><span class="neon">across Kenya, live.</span></h1>
-    <p>Every dot is a real detection from a Bulwark-protected machine that self-reports its location. The stream below shows the rest. No agent names, no file paths, no personal data &mdash; just the fight, as it happens.</p>
+    <p>Live dots are detections from Bulwark-protected machines that self-report their location. The optional OSINT layer adds attributed public-feed context, clearly separated from fleet telemetry. No agent names, no file paths, no personal data &mdash; just the fight, as it happens.</p>
   </div>
 </header>
 
@@ -145,6 +150,7 @@
         <div class="legend-bar"></div>
         <span>Low → High</span>
       </div>
+      <div class="osint-sources" id="osintSources" aria-label="Public OSINT feed status"></div>
       <svg id="kenyaSvg" viewBox="0 0 400 470" role="img" aria-label="Kenya county map with live threat markers"></svg>
     </div>
     <div class="offline-banner" id="offBanner"></div>
@@ -158,7 +164,7 @@
 
 <section class="section-alt section">
   <div class="container">
-    <div class="sec-head"><span class="kicker">How it works</span><h2>Yours, not a <span class="neon">vendor&apos;s.</span></h2><p>Unlike big-brand heatmaps that resell third-party data, this map is generated solely by your own agents&apos; telemetry &mdash; the quiet proof that your fleet is doing its job.</p></div>
+    <div class="sec-head"><span class="kicker">How it works</span><h2>Yours, not a <span class="neon">vendor&apos;s.</span></h2><p>Unlike big-brand heatmaps that resell third-party data, the live layer comes from your own agents&apos; telemetry. Public OSINT feeds are labelled separately and never presented as fleet detections.</p></div>
     <div class="grid grid-3">
       <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="radar" style="width:24px;height:24px"></span></div><h3>Agents detect</h3><p>Every Bulwark agent pushes its open detections to your fleet console once a minute &mdash; nothing else ever leaves the machine.</p></div>
       <div class="card"><div class="card-accent"></div><div class="ico"><span class="g" data-icon="map" style="width:24px;height:24px"></span></div><h3>Console maps</h3><p>The fleet console keeps a privacy-scrubbed public feed. Machines that self-report a location become a dot; the rest join the live stream.</p></div>
@@ -218,6 +224,7 @@
 
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer src="data/kenya_counties.geojson.js"></script>
+<script defer src="data/osint_sources.js"></script>
 <script defer src="assets/js/map.js"></script>
 <script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>
 </body>

@@ -17,7 +17,14 @@ A static website for the Bulwark security platform. Provides vulnerability asses
 - `web_scanner.py` – Web vulnerability scanning
 - `build-blocklist.py` – Blocklist generation
 - `export-live.ps1` – Live export script
-- JSON data files (`threat_intel.json`, `fleet_consensus.json`, `blocklist.json`, `osint_grid.json`)
+- JSON data files (`threat_intel.json`, `fleet_consensus.json`, `blocklist.json`, `osint_grid.json`, `osint_sources.json`)
+
+## Public OSINT sources
+- `scripts/build-blocklist.py` pulls FireHOL, DShield, Feodo, Emerging Threats, Spamhaus DROP, Tor exit nodes, and optional abuse.ch URLhaus / AlienVault OTX indicators into `data/blocklist.json` and `data/blocklist.js`.
+- `scripts/build-osint.py` pulls CISA KEV, NVD, MITRE ATT&CK, and optional abuse.ch ThreatFox / AlienVault OTX summaries into `data/osint_sources.json` and `data/osint_sources.js`.
+- `backend/threat_feeds.py` merges network indicators from FireHOL, DShield, Feodo, Emerging Threats, Spamhaus DROP, and Tor into `data/threat_intel.json`.
+- Optional keys: set `ABUSECH_AUTH_KEY` and `OTX_API_KEY` in the environment to enable authenticated feeds; unset feeds are skipped and previous snapshots are retained.
+- The live map labels these as public OSINT sources; only real Bulwark agent reports should be described as live fleet detections.
 
 ## Tech Stack
 - HTML5 / CSS3 / JavaScript
