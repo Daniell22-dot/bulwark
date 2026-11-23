@@ -6,6 +6,8 @@ window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
 window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
 window.BULWARK_KENYA_GEOJSON = "data/kenya_counties.geojson";
 window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
+window.BULWARK_KENYA_INCIDENTS_JSON = "data/kenya_incidents.json";
+window.BULWARK_KENYA_INCIDENTS_JS = "data/kenya_incidents.js";
 
 (function () {
   "use strict";
@@ -92,7 +94,7 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
   }
 
   /* layer visibility state */
-  var layers = { grid: true, osint: false, live: true };
+  var layers = { grid: true, osint: false, incidents: false, live: true };
   function setLayer(name, on) {
     layers[name] = on;
     var grp = svg.querySelector("[data-layer='" + name + "']");
@@ -101,6 +103,10 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
       document.getElementById("osintLegend").style.display = on ? "" : "none";
       var sources = document.getElementById("osintSources");
       if (sources) sources.style.display = on ? "flex" : "none";
+    }
+    if (name === "incidents") {
+      var panel = document.getElementById("incidentPanel");
+      if (panel) panel.style.display = on ? "" : "none";
     }
     document.querySelectorAll(".layer-btn[data-layer='" + name + "']").forEach(function (b) {
       b.classList.toggle("on", on);
@@ -164,6 +170,40 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
         x: x.toFixed(1), y: y.toFixed(1), width: w.toFixed(1), height: h.toFixed(1),
         fill: osintColor(r), "fill-opacity": osintOpacity(r), "class": "osint-cell"
       }, g);
+    });
+  }
+
+  function incidentColor(category) {
+    if (category === "conflict") return "#ff5a5f";
+    if (category === "assault") return "#ff8a5b";
+    if (category === "theft") return "#ffd94d";
+    if (category === "protest") return "#8be9fd";
+    if (category === "cyber") return "#b388ff";
+    if (category === "coercion") return "#ffb347";
+    return "#05e563";
+  }
+
+  function drawIncidents(data) {
+    var g = el("g", { "data-layer": "incidents" }, svg);
+    if (!layers.incidents) g.style.display = "none";
+    (data || []).forEach(function (e) {
+      if (e.lat == null || e.lon == null) return;
+      if (e.lon < LON_MIN || e.lon > LON_MAX || e.lat < LAT_MIN || e.lat > LAT_MAX) return;
+      var x = px(e.lon), y = py(e.lat);
+      var color = incidentColor(e.category);
+      var r = 2.2 + Math.max(1, Math.min(4, e.severity || 1)) * 0.55;
+      var marker = el("a", {
+        "href": safeUrl(e.url) || "#",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+        "transform": "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")",
+        "class": "incident-marker"
+      }, g);
+      el("circle", { r: (r + 4).toFixed(1), fill: color, opacity: .15 }, marker);
+      el("circle", { r: r.toFixed(1), fill: color, stroke: "#050a12", "stroke-width": .8 }, marker);
+      var tip = el("title", {}, marker);
+      tip.textContent = (e.date || "") + " · " + (e.categoryLabel || "Incident") + " · " + (e.place || "") +
+        "\n" + (e.title || "") + "\n" + (e.source || "GDELT") + " · " + (e.confidence || "");
     });
   }
 
@@ -334,6 +374,57 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
     });
   }
 
+  var incidentCache = null;
+  function loadKenyaIncidents() {
+    if (incidentCache) return Promise.resolve(incidentCache);
+    if (window.BULWARK_KENYA_INCIDENTS) {
+      incidentCache = window.BULWARK_KENYA_INCIDENTS;
+      return Promise.resolve(incidentCache);
+    }
+    return fetch(window.BULWARK_KENYA_INCIDENTS_JSON, { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("incidents-fail"); return r.json(); })
+      .then(function (d) { incidentCache = d; return d; })
+      .catch(function () { incidentCache = { events: [], sources: [], summary: {} }; return incidentCache; });
+  }
+
+  function safeUrl(value) {
+    return /^https?:\/\//i.test(String(value || "")) ? String(value) : "";
+  }
+
+  function renderIncidentFeed(data) {
+    var host = document.getElementById("incidentFeed");
+    if (!host) return;
+    host.textContent = "";
+    var events = (data && data.events) || [];
+    var count = document.getElementById("stIncidents");
+    if (count) count.textContent = events.length + " Kenya OSINT incidents";
+    events.slice(0, 14).forEach(function (e) {
+      var row = document.createElement("div");
+      row.className = "incident-row";
+      var cat = document.createElement("span");
+      cat.className = "incident-cat";
+      cat.textContent = e.categoryLabel || "Incident";
+      cat.style.borderColor = incidentColor(e.category);
+      cat.style.color = incidentColor(e.category);
+      var body = document.createElement("span");
+      body.innerHTML = "<b>" + esc(e.title || "Incident") + "</b><small>" + esc(e.date || "") + " · " + esc(e.place || "") + "</small>";
+      var link = document.createElement("a");
+      var href = safeUrl(e.url);
+      if (href) {
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = esc(e.source || "source") + " ↗";
+      } else {
+        link.textContent = "GDELT";
+      }
+      row.appendChild(cat);
+      row.appendChild(body);
+      row.appendChild(link);
+      host.appendChild(row);
+    });
+  }
+
   var pings = { };
 
   function addMarker(e) {
@@ -456,8 +547,13 @@ window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
   drawGrid();
   drawCounties();
   loadOSINT().then(function (d) { drawOSINT(d.grid); });
+  loadKenyaIncidents().then(function (d) {
+    drawIncidents(d.events || []);
+    renderIncidentFeed(d);
+  });
   setLayer("grid", true);
   setLayer("osint", false);
+  setLayer("incidents", false);
   setLayer("live", true);
 
   document.querySelectorAll(".layer-btn").forEach(function (b) {

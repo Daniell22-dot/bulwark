@@ -96,6 +96,17 @@
   .osint-source b { color: var(--neon); font-weight: 700; }
   .osint-source.err { border-color: rgba(255,179,71,.4); }
   .osint-source.err b { color: #ffb347; }
+  /* Kenya OSINT incident layer */
+  .incident-legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; font-family: var(--font-mono); font-size: .65rem; color: var(--txt-faint); }
+  .incident-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .incident-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .incident-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #0e1726; font-family: var(--font-mono); font-size: .75rem; }
+  .incident-row:last-child { border-bottom: 0; }
+  .incident-cat { padding: 3px 8px; border: 1px solid currentColor; font-size: .6rem; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+  .incident-row b { color: var(--txt); font-weight: 600; }
+  .incident-row small { display: block; margin-top: 3px; color: var(--txt-faint); }
+  .incident-row a { color: var(--neon); text-decoration: none; white-space: nowrap; }
+  @media (max-width:680px){ .incident-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -128,7 +139,7 @@
       </div>
     </div>
     <h1>Attacks being blocked<br><span class="neon">across Kenya, live.</span></h1>
-    <p>Live dots are detections from Bulwark-protected machines that self-report their location. The optional OSINT layer adds attributed public-feed context, clearly separated from fleet telemetry. No agent names, no file paths, no personal data &mdash; just the fight, as it happens.</p>
+    <p>Live dots are detections from Bulwark-protected machines that self-report their location. The Kenya OSINT layer plots dated, source-linked public reports of theft, protests and violent incidents from Kenyan news coverage &mdash; kept separate from fleet telemetry. No agent names, no file paths, no personal data &mdash; just the picture, as it happens.</p>
   </div>
 </header>
 
@@ -138,11 +149,13 @@
       <div class="map-stats" style="margin-bottom:14px">
         <span class="st" id="stStatus"><b data-st="offline">offline</b></span>
         <span class="st" id="stEvents"><b>0</b> <span data-st="ev">events</span></span>
+        <span class="st" id="stIncidents">0 Kenya OSINT incidents</span>
         <span class="st" id="stUpdated"><span data-st="upd">refreshes</span> &mdash;<span id="stCount"> 0</span></span>
       </div>
       <div class="layer-controls" role="group" aria-label="Map layers">
         <button class="layer-btn on" data-layer="grid" type="button">Grid</button>
         <button class="layer-btn" data-layer="osint" type="button">OSINT</button>
+        <button class="layer-btn" data-layer="incidents" type="button">Kenya incidents</button>
         <button class="layer-btn on" data-layer="live" type="button">Live</button>
       </div>
       <div class="osint-legend" id="osintLegend" style="display:none">
@@ -157,6 +170,18 @@
 
     <div class="sec-head" style="margin-top:48px"><span class="kicker">Live stream</span><h2>Latest detections, <span class="neon">as they land.</span></h2></div>
     <div class="livefeed" id="liveFeed"><p class="note" style="padding:20px;text-align:center" id="feedEmpty"></p></div>
+
+    <div id="incidentPanel" style="display:none;margin-top:48px">
+      <div class="sec-head"><span class="kicker">Kenya OSINT</span><h2>Public reports, <span class="neon">placed on the map.</span></h2><p>Geolocated public reports from the last 24 hours, sourced from GDELT Events 2.0 and optional ACLED Kenya coverage. Each dot is an open-source report, not a Bulwark detection; locations are place-level and reports are not independently verified.</p></div>
+      <div class="incident-legend" aria-label="Incident category colors">
+        <span><i style="background:#ff5a5f"></i>armed conflict</span>
+        <span><i style="background:#ff8a5b"></i>assault</span>
+        <span><i style="background:#ffd94d"></i>theft / property</span>
+        <span><i style="background:#8be9fd"></i>protest</span>
+        <span><i style="background:#ffb347"></i>coercion</span>
+      </div>
+      <div class="livefeed" id="incidentFeed"></div>
+    </div>
 
     <div class="callout blue" style="margin-top:34px"><p><b style="color:var(--txt)">Privacy by construction.</b> The public stream carries only the minimal facts: attack type, source address and a region dot. Machine names, usernames and internal details never leave your console and never appear here.</p></div>
   </div>
@@ -225,6 +250,7 @@
 <script defer src="assets/js/main.js" data-cfasync="false"></script>
 <script defer src="data/kenya_counties.geojson.js"></script>
 <script defer src="data/osint_sources.js"></script>
+<script defer src="data/kenya_incidents.js"></script>
 <script defer src="assets/js/map.js"></script>
 <script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>
 </body>

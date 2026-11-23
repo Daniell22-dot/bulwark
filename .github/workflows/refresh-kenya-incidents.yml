@@ -1,0 +1,41 @@
+name: Refresh Kenya OSINT incidents
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-kenya-incidents
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build Kenya incident snapshot
+        env:
+          ACLED_KEY: ${{ secrets.ACLED_KEY }}
+          ACLED_EMAIL: ${{ secrets.ACLED_EMAIL }}
+        run: python scripts/build-kenya-incidents.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/kenya_incidents.json data/kenya_incidents.js
+          if git diff --cached --quiet; then
+            echo "Kenya incident snapshot unchanged"
+          else
+            git commit -m "chore: refresh Kenya OSINT incidents [skip ci]"
+            git push
+          fi
