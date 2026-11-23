@@ -4,6 +4,8 @@
 window.BULWARK_LIVE = window.BULWARK_LIVE || "https://live.example.com";
 window.BULWARK_SNAPSHOT_LIVE = "data/live.json";
 window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
+window.BULWARK_KENYA_GEOJSON = "data/kenya_counties.geojson";
+window.BULWARK_KENYA_COUNTIES_JS = "data/kenya_counties.geojson.js";
 
 (function () {
   "use strict";
@@ -172,24 +174,69 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
     });
   }
 
-  /* stylised approximate outline — used ONLY if the real GeoJSON fails to load */
   function drawFallbackOutline() {
-    if (svg.querySelector("g[data-layer='basemap']")) return;
+    if (basemapRendered || svg.querySelector("path.land")) return;
     el("polygon", { points: poly(KENYA), "class": "land" });
   }
 
-  /* load GeoJSON county basemap (the real Kenyan counties) */
   var geojsonCache = null;
+  var basemapRendered = false;
   function drawGeoJSONBasemap() {
+    if (basemapRendered) return;
     if (geojsonCache) { renderGeoJSON(geojsonCache); return; }
-    fetch("data/kenya_counties.geojson", { headers: { "Accept": "application/json" } })
-      .then(function (r) { if (!r.ok) throw new Error("geojson-fail"); return r.json(); })
-      .then(function (data) { geojsonCache = data; renderGeoJSON(data); })
-      .catch(function () { drawFallbackOutline(); });
+    if (window.BULWARK_KENYA_COUNTIES) {
+      geojsonCache = window.BULWARK_KENYA_COUNTIES;
+      renderGeoJSON(geojsonCache);
+      return;
+    }
+    loadCountiesScript(function (loaded) {
+      if (loaded && window.BULWARK_KENYA_COUNTIES) {
+        geojsonCache = window.BULWARK_KENYA_COUNTIES;
+        renderGeoJSON(geojsonCache);
+        return;
+      }
+      fetchCounties(function (data) {
+        if (data) {
+          geojsonCache = data;
+          renderGeoJSON(data);
+          return;
+        }
+        drawFallbackOutline();
+      });
+    });
+  }
+  function loadCountiesScript(callback) {
+    var s = document.createElement("script");
+    var done = false;
+    function finish(ok) {
+      if (done) return;
+      done = true;
+      callback(ok);
+    }
+    s.src = window.BULWARK_KENYA_COUNTIES_JS;
+    s.onload = function () { finish(!!window.BULWARK_KENYA_COUNTIES); };
+    s.onerror = function () { finish(false); };
+    (document.head || document.body).appendChild(s);
+  }
+  function fetchCounties(callback) {
+    try {
+      fetch(window.BULWARK_KENYA_GEOJSON, { headers: { "Accept": "application/json" } })
+        .then(function (r) { if (!r.ok) throw new Error("geojson-fail"); return r.json(); })
+        .then(function (data) { callback(data); })
+        .catch(function () { callback(null); });
+    } catch (e) {
+      callback(null);
+    }
   }
   function renderGeoJSON(data) {
-    var g = el("g", { "data-layer": "basemap" }, svg);
-    (data.features || []).forEach(function (feature) {
+    if (basemapRendered || !data || !Array.isArray(data.features) || !data.features.length) {
+      drawFallbackOutline();
+      return;
+    }
+    var g = document.createElementNS(NS, "g");
+    g.setAttribute("data-layer", "basemap");
+    var paths = 0;
+    data.features.forEach(function (feature) {
       var geom = feature.geometry;
       if (!geom || !geom.coordinates) return;
       var polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
@@ -203,11 +250,26 @@ window.BULWARK_SNAPSHOT_LIVE_JS = "data/live.js";
           });
           d += "Z ";
         });
-        var path = el("path", { d: d.trim(), "class": "county-baseline" }, g);
+        if (!d) return;
+        var path = document.createElementNS(NS, "path");
+        path.setAttribute("d", d.trim());
+        path.setAttribute("class", "county-baseline");
         var name = feature.properties && feature.properties.name ? feature.properties.name : "";
-        if (name && path) path.setAttribute("data-county", name);
+        if (name) {
+          path.setAttribute("data-county", name);
+          var title = document.createElementNS(NS, "title");
+          title.textContent = name;
+          path.appendChild(title);
+        }
+        g.appendChild(path);
+        paths++;
       });
     });
+    if (!paths) { drawFallbackOutline(); return; }
+    var fallback = svg.querySelector("path.land");
+    if (fallback && fallback.parentNode) fallback.parentNode.removeChild(fallback);
+    svg.insertBefore(g, svg.firstChild);
+    basemapRendered = true;
   }
 
   /* load OSINT data from file or fall back to embedded snapshot */
