@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T16:16:30.560754+00:00",
+  "generated_at": "2026-11-27T16:00:01.738051+00:00",
   "repository": "Daniell22-dot/bulwark",
   "branch": "main",
   "dependabot_alerts": 0,
@@ -9,15 +9,15 @@
   "last_repo-scan": null,
   "last_threat-feeds": {
     "conclusion": "success",
-    "createdAt": "2026-11-26T01:36:13Z"
+    "createdAt": "2026-11-27T01:30:15Z"
   },
   "last_fleet-consensus": {
     "conclusion": "success",
-    "createdAt": "2026-11-26T08:40:47Z"
+    "createdAt": "2026-11-27T08:51:25Z"
   },
   "last_telemetry-rollup": {
     "conclusion": "success",
-    "createdAt": "2026-11-26T13:46:26Z"
+    "createdAt": "2026-11-27T14:46:26Z"
   },
   "codeql_alerts": 0,
   "secret_alerts": 0
