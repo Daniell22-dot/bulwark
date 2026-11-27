@@ -1,15 +1,16 @@
 import os
 import json
 import sqlite3
+import secrets
 from datetime import datetime, timezone
 from pathlib import Path
-from contextlib import asynccontextmanager
-from typing import Optional, List, Dict, Any
+from contextlib import asynccontextmanager, closing
+from typing import Optional, List, Dict, Any, Literal
 
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, Depends, Header, Query
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 import httpx
 
 # ─── Config ───
@@ -18,12 +19,13 @@ DB_PATH = DATA_DIR / "telemetry.db"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPO", "your-org/bulwark")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
+DECEPTION_API_KEY = os.getenv("DECEPTION_API_KEY")
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── Database ───
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS telemetry (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,9 +49,24 @@ def init_db():
                 status TEXT DEFAULT 'completed'
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS deception_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                received_at TEXT NOT NULL,
+                decoy_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                occurred_at TEXT NOT NULL,
+                host_id TEXT,
+                process_name TEXT
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_deception_received "
+            "ON deception_events(received_at DESC)"
+        )
 
 def store_telemetry(agent_id: str, host: str, ip: str, os: str, events: list, raw: dict) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         cur = conn.execute(
             "INSERT INTO telemetry (received_at, agent_id, host, ip, os, events_json, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (datetime.now(timezone.utc).isoformat(), agent_id, host, ip, os, json.dumps(events), json.dumps(raw))
@@ -57,7 +74,7 @@ def store_telemetry(agent_id: str, host: str, ip: str, os: str, events: list, ra
         return cur.lastrowid
 
 def store_scan_result(target: str, scan_type: str, findings: list) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         cur = conn.execute(
             "INSERT INTO scan_results (started_at, target, scan_type, findings_json) VALUES (?, ?, ?, ?)",
             (datetime.now(timezone.utc).isoformat(), target, scan_type, json.dumps(findings))
@@ -65,7 +82,7 @@ def store_scan_result(target: str, scan_type: str, findings: list) -> int:
         return cur.lastrowid
 
 def get_recent_telemetry(limit: int = 100) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM telemetry ORDER BY received_at DESC LIMIT ?", (limit,)
@@ -73,12 +90,45 @@ def get_recent_telemetry(limit: int = 100) -> List[Dict]:
         return [dict(r) for r in rows]
 
 def get_scan_results(limit: int = 50) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM scan_results ORDER BY started_at DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+def store_deception_event(event: "DeceptionEvent") -> int:
+    received_at = datetime.now(timezone.utc).isoformat()
+    occurred_at = (event.occurred_at or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
+        cur = conn.execute(
+            """
+            INSERT INTO deception_events
+                (received_at, decoy_id, event_type, occurred_at, host_id, process_name)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                received_at,
+                event.decoy_id,
+                event.event_type,
+                occurred_at,
+                event.host_id,
+                event.process_name,
+            ),
+        )
+        return cur.lastrowid
+
+def get_deception_events(limit: int = 100) -> List[Dict]:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT id, received_at, decoy_id, event_type, occurred_at, host_id, process_name
+            FROM deception_events ORDER BY received_at DESC, id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
 # ─── GitHub Sync ───
 async def push_to_github(path: str, content: str, message: str) -> bool:
@@ -141,6 +191,15 @@ class ScanTrigger(BaseModel):
     scan_type: str = "web"  # web, repo, usb, network
     options: Dict[str, Any] = {}
 
+class DeceptionEvent(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    decoy_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+    event_type: Literal["file_opened", "callback"]
+    occurred_at: Optional[AwareDatetime] = None
+    host_id: Optional[str] = Field(default=None, max_length=128)
+    process_name: Optional[str] = Field(default=None, max_length=128)
+
 # ─── App ───
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -175,6 +234,26 @@ async def trigger_scan(payload: ScanTrigger, background: BackgroundTasks):
     scan_id = store_scan_result(payload.target, payload.scan_type, findings)
     background.add_task(sync_scans_to_github)
     return {"status": "queued", "scan_id": scan_id}
+
+def require_deception_api_key(x_api_key: Optional[str] = Header(default=None, alias="X-API-Key")):
+    if not DECEPTION_API_KEY:
+        raise HTTPException(503, "Deception event intake is disabled")
+    if not x_api_key or not secrets.compare_digest(x_api_key, DECEPTION_API_KEY):
+        raise HTTPException(401, "Invalid or missing API key")
+
+@app.post("/api/deception/events", status_code=201, dependencies=[Depends(require_deception_api_key)])
+async def receive_deception_event(payload: DeceptionEvent):
+    """Accept an authenticated report from a trusted deception sensor."""
+    event_id = store_deception_event(payload)
+    return {"status": "accepted", "event_id": event_id}
+
+@app.get("/api/deception/events", dependencies=[Depends(require_deception_api_key)])
+async def deception_events(limit: int = Query(default=100, ge=1, le=500)):
+    """Return recent deception events to an authenticated operator."""
+    return {
+        "events": get_deception_events(limit),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 @app.get("/api/dashboard")
 async def dashboard_data():

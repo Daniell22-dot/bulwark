@@ -11,13 +11,36 @@ A static website for the Bulwark security platform. Provides vulnerability asses
 - `about.html`, `privacy.html`, `terms.html`, `pricing.html`, `features.html`, `reports.html`
 
 ## Data & Scripts
-- `main.py` – Fleet data ingestion & SBOM generation
-- `fleet_consensus.py` – Consensus filtering
-- `threat_feeds.py` – Feed processing
-- `web_scanner.py` – Web vulnerability scanning
-- `build-blocklist.py` – Blocklist generation
-- `export-live.ps1` – Live export script
-- JSON data files (`threat_intel.json`, `fleet_consensus.json`, `blocklist.json`, `osint_grid.json`, `osint_sources.json`, `kenya_incidents.json`)
+- `scripts/build-blocklist.py` – builds the public IP/domain blocklist snapshot.
+- `scripts/build-osint.py` – builds CISA KEV, NVD, MITRE ATT&CK and optional provider summaries.
+- `scripts/build-kenya-incidents.py` – builds the Kenya public-incident snapshot.
+- `backend/threat_feeds.py` – ingests network threat feeds into JSON and a local SQLite database.
+- `backend/fleet_consensus.py` – correlates threat-feed data with agent telemetry when its SQLite inputs are available.
+- `backend/web_scanner.py` – scheduled web-security checks.
+- `backend/app/main.py` – optional FastAPI service; it is not part of the static Vercel deployment.
+- `scripts/export-live.ps1` – exports live-map data from the local console.
+
+Generated snapshots are kept under `data/` and served as static files.
+
+## Automation & Deployment
+
+GitHub Actions runs the data-generation scripts on hosted runners, then commits changed snapshots to the repository. Vercel serves the static site and deploys those commits through its Git integration; Vercel does **not** run these Python scripts.
+
+| Workflow | Runs | Schedule |
+|---|---|---|
+| `refresh-intel.yml` | `build-blocklist.py`, `build-osint.py` | Every 6 hours; manual dispatch |
+| `threat-feeds.yml` | `backend/threat_feeds.py` | Every 6 hours; manual dispatch |
+| `refresh-kenya-incidents.yml` | `build-kenya-incidents.py` | Daily; manual dispatch |
+| `fleet-consensus.yml` | `backend/fleet_consensus.py` | After threat feeds and on a 6-hour schedule |
+| `scheduled-scans.yml` | `backend/web_scanner.py` | Daily; manual dispatch |
+
+The public blocklist/OSINT snapshots and Kenya incident snapshot are independent of the FastAPI backend. Optional `ABUSECH_AUTH_KEY`, `OTX_API_KEY`, and `ACLED_KEY`/`ACLED_EMAIL` are configured as GitHub repository secrets when those providers are enabled.
+
+**Fleet-consensus caveat:** the workflow currently expects `data/threat_intel.db` and `data/telemetry.db`. SQLite files are git-ignored, and the scheduled feed job uploads its database only as an artifact; the GitHub runner therefore may not have fresh databases to correlate. The checked-in `fleet_consensus.json` can be empty or stale until its data handoff is designed. Do not solve this by committing raw telemetry: it can contain hostnames, IP addresses, and event details.
+
+### SENTINEL is a separate application
+
+`D:\SENTINEL` is the .NET 8 Windows endpoint product, not part of this static site. Its `Sentinel.ThreatIntel` service runs on a Windows machine and refreshes its own feeds while the service is running; its GitHub Actions workflow builds the Windows agent/installer on push or pull request. Neither that workflow nor Vercel runs the Python snapshot scripts above. The live site endpoints require the separately configured local services/tunnel described in `D:\SENTINEL\FREE-TOOLS-DEPLOY.md`.
 
 ## Public OSINT sources
 - `scripts/build-blocklist.py` pulls FireHOL, DShield, Feodo, Emerging Threats, Spamhaus DROP, Tor exit nodes, and optional abuse.ch URLhaus / AlienVault OTX indicators into `data/blocklist.json` and `data/blocklist.js`.
@@ -31,14 +54,23 @@ A static website for the Bulwark security platform. Provides vulnerability asses
 
 ## Tech Stack
 - HTML5 / CSS3 / JavaScript
-- Python 3.13 for backend processing
+- Python for scheduled data generation and backend processing
 - YARA rules for malware pattern detection
 - Vercel for static hosting
 - Markdown content files
 
 ## Local Development
 ```bash
-python -m pip install -r requirements.txt
-python main.py   # generate content
-# Open index.html in browser
+# Public snapshots (stdlib only; optional provider keys come from environment)
+python scripts/build-blocklist.py
+python scripts/build-osint.py
+python scripts/build-kenya-incidents.py
+
+# Network threat-feed ingestion (requires httpx)
+python -m pip install httpx
+python backend/threat_feeds.py
+
+# Open index.html in a browser, or use a local static server.
 ```
+
+To run the optional FastAPI service locally, see [backend/README.md](backend/README.md). It requires a separate Python environment and is not deployed by Vercel's static-site configuration.

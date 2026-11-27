@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Build Kenya incident snapshot
         env:
@@ -36,6 +36,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Kenya incident snapshot unchanged"
           else
-            git commit -m "chore: refresh Kenya OSINT incidents [skip ci]"
+            git commit -m "chore: refresh Kenya OSINT incidents"
             git push
           fi

@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Rebuild snapshots
         run: |
@@ -38,6 +38,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "snapshots unchanged"
           else
-            git commit -m "chore: refresh threat-intel snapshots [skip ci]"
+            git commit -m "chore: refresh threat-intel snapshots"
             git push
           fi

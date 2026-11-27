@@ -13,6 +13,7 @@ Cloud telemetry ingest + scheduled scans + GitHub Actions automation for the Bul
    - `GITHUB_REPO` = `your-org/bulwark`
    - `GITHUB_BRANCH` = `main`
 5. Add persistent disk: `/app/data` (1 GB free)
+6. To enable the opt-in deception event API, set `DECEPTION_API_KEY` to a strong random value and keep it in your deployment's secret manager.
 
 ### Fly.io
 ```bash
@@ -65,19 +66,17 @@ Add these repository secrets:
 | Workflow | Schedule | Purpose |
 |----------|----------|---------|
 | `threat-feeds.yml` | Every 6h | Fetch FireHOL, DShield, Feodo, SSLBL, URLhaus → `data/threat_intel.json` |
-| `fleet-consensus.yml` | After threat feeds | Correlate threat intel with agent telemetry → `data/fleet_consensus.json` |
-| `refresh-intel.yml` | Every 6h | Build blocklist for `/check` page → `data/blocklist.json` |
+| `fleet-consensus.yml` | After threat feeds, every 6h, or manual | Correlate threat intel with agent telemetry → `data/fleet_consensus.json` |
+| `refresh-intel.yml` | Every 6h | Build blocklist and OSINT snapshots for the static site |
+| `refresh-kenya-incidents.yml` | Daily | Build the public Kenya incident snapshot |
 | `scheduled-scans.yml` | Daily 02:00 UTC | Web vuln scan (HTTP, TLS, headers, Playwright deep scan) + repo secret scan |
 | `telemetry-rollup.yml` | Hourly | Aggregate agent telemetry → `data/telemetry_summary.json` |
 | `alert-check.yml` | Every 15 min | Create GitHub Issues on critical telemetry events |
-| `fleet-consensus.yml` | After threat feeds | Correlate threat feeds with fleet sightings |
 | `dependency-autopatch.yml` | Weekly Mon 03:00 | Detect vulns → branch → test → PR |
 | `sast-container-iac.yml` | Weekly Sun 04:00 / PR | CodeQL SAST, Trivy container, tfsec/checkov IaC, TruffleHog secrets |
 | `security-posture.yml` | Daily 06:00 UTC | Collect metrics, create GitHub Issues on critical findings |
-| `security-posture.yml` | Daily 06:00 UTC | Security posture dashboard metrics |
-| `dependency-autopatch.yml` | Weekly Mon 03:00 | Auto-patch vulnerable deps → test → PR |
-| `sast-container-iac.yml` | Weekly / PR | CodeQL SAST, Trivy container, tfsec/checkov IaC, TruffleHog |
-| `security-posture.yml` | Daily 06:00 UTC | Security posture dashboard + alerts |
+
+These are GitHub Actions jobs: they check out the repository, run the listed script on a hosted runner, and (where configured) commit generated JSON. Vercel serves the resulting static files after a Git deployment; it does not execute the Python scripts.
 
 ### Required Repository Secrets
 - `GITHUB_TOKEN` - auto-provided, ensure `contents: write` permission
@@ -109,6 +108,30 @@ var payload = new {
 
 await httpClient.PostAsJsonAsync("https://your-backend.onrender.com/telemetry", payload);
 ```
+
+## Opt-in Deception Event Intake
+
+The backend can accept small, authenticated reports from a trusted deception sensor and expose recent reports to an authenticated operator. It does **not** deploy decoy files, create AD accounts, seed credentials, or receive credential contents. The feature is disabled unless `DECEPTION_API_KEY` is configured.
+
+Use a unique, high-entropy key over HTTPS, store it in the deployment secret manager, and rotate it if a sensor or operator is decommissioned. The same key currently authorizes event submission and event listing, so restrict its distribution to trusted pilot components. Do not send passwords, tokens, file contents, or full filesystem paths in event payloads.
+
+```bash
+curl -X POST https://your-backend.example/api/deception/events \
+  -H "X-API-Key: $DECEPTION_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "decoy_id": "pilot.desktop.01",
+    "event_type": "file_opened",
+    "occurred_at": "2026-11-27T15:00:00Z",
+    "host_id": "workstation-01",
+    "process_name": "unknown.exe"
+  }'
+
+curl "https://your-backend.example/api/deception/events?limit=100" \
+  -H "X-API-Key: $DECEPTION_API_KEY"
+```
+
+Accepted event types are `file_opened` and `callback`. Reports are stored in the backend SQLite database and are not exported to GitHub. Pilot with non-sensitive decoys first; deploy endpoint lures and configure SIEM alerting separately. AD honeyusers, SPNs, and credential/session deception are intentionally not managed by this API.
 
 ## Web Scanner (Playwright Deep Scan)
 
@@ -153,6 +176,7 @@ All dashboard data comes from JSON files in `data/` committed by workflows:
 | `GITHUB_TOKEN` | Yes* | - | PAT for committing data/creating issues |
 | `GITHUB_REPO` | Yes* | - | `owner/repo` for sync |
 | `GITHUB_BRANCH` | No | `main` | Target branch |
+| `DECEPTION_API_KEY` | No | unset | Enables authenticated deception event submission and listing |
 | `USE_PLAYWRIGHT` | No | `false` | Enable Playwright deep scan |
 | `DEEP_SCAN` | No | `false` | Run Playwright deep scan |
 
